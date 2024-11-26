@@ -9,6 +9,7 @@ To do:
 
 - Implement vote counters
 - Persist data in backend
+- "Suggest your own" section
 
 Nice to have:
 - user comments?
