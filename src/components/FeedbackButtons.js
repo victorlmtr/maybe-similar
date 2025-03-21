@@ -1,29 +1,21 @@
-import React from 'react';
+import React from "react";
 
-const FeedbackButtons = ({ onFeedback, onNext, currentFeedback }) => {
-    return (
-        <div className="text-center mt-4">
-            <div>
-                <button
-                    className={`btn me-2 ${currentFeedback === true ? "btn-success" : "btn-outline-success"}`}
-                    onClick={() => onFeedback(true)}
-                >
-                    Similaire
-                </button>
-                <button
-                    className={`btn me-2 ${currentFeedback === false ? "btn-danger" : "btn-outline-danger"}`}
-                    onClick={() => onFeedback(false)}
-                >
-                    Pas similaire
-                </button>
-            </div>
-            <div className="mt-4">
-                <button className="btn btn-secondary" onClick={onNext}>
-                    Suivant
-                </button>
-            </div>
-        </div>
-    );
+const FeedbackButtons = ({
+  onFeedback,
+  onNext,
+  currentFeedback,
+  similarVotes,
+  notSimilarVotes,
+}) => {
+  return (
+    <div>
+      <button onClick={() => onFeedback(true)}>Similar ({similarVotes})</button>
+      <button onClick={() => onFeedback(false)}>
+        Not Similar ({notSimilarVotes})
+      </button>
+      <button onClick={onNext}>Next</button>
+    </div>
+  );
 };
 
 export default FeedbackButtons;

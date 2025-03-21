@@ -2,7 +2,10 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const cors = require("cors");
 const { Pool } = require("pg");
-require("dotenv").config();
+const dotenv = require("dotenv");
+const { getVideoDetails } = require("./youtubeService");
+
+dotenv.config();
 
 const app = express();
 const port = 5000;
@@ -30,7 +33,22 @@ const pool = new Pool({
 app.get("/api/videos", async (req, res) => {
   try {
     const result = await pool.query("SELECT * FROM video_pairs");
-    res.json(result.rows);
+    const videoPairs = result.rows;
+
+    const videoDetailsPromises = videoPairs.map(async (pair) => {
+      const video1Details = await getVideoDetails(pair.video1_id);
+      const video2Details = await getVideoDetails(pair.video2_id);
+      return {
+        ...pair,
+        video1SongName: video1Details.songName,
+        video1ArtistName: video1Details.artistName,
+        video2SongName: video2Details.songName,
+        video2ArtistName: video2Details.artistName,
+      };
+    });
+
+    const videoPairsWithDetails = await Promise.all(videoDetailsPromises);
+    res.json(videoPairsWithDetails);
   } catch (err) {
     console.error(err.message);
     res.status(500).send("Server error");
@@ -55,7 +73,7 @@ app.post("/api/suggestions", async (req, res) => {
   const { username, video1, video2 } = req.body;
   try {
     await pool.query(
-      "INSERT INTO video_pairs (username, video1_id, video1_start, video1_end, video2_id, video2_start, video2_end) VALUES ($1, $2, $3, $4, $5, $6, $7)",
+      "INSERT INTO video_pairs (username, video1_id, video1_start, video1_end, video2_id, video2_start, video2_end, date_added) VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP)",
       [
         username,
         video1.id,
