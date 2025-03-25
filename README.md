@@ -1,20 +1,12 @@
 # MaybeSimilar?
 
-Sometimes I think two songs sound similar, and I want to see if people agree with me… so I made an app!
+Think two songs sound similar? Let everyone know with MaybeSimilar!
 
-![Screenshot of early version](/docs/MaybeSimilar_early-version-screenshot.png?raw=true "Screenshot of early version")
+![Screenshot of early version](/docs/maybe-similar-screenshot.png?raw=true "Screenshot of early version")
 
+MaybeSimilar is a short project I've made because my friends and I sometimes share songs that remind us of other songs.
 
-To do:
-- fix vote counter
-- fix loading song name
-- implement material design
-- implement language selection
+This app allows users to vote on whether they think two songs sound alike as well as submitting their own suggestions.
+This project uses a small Node.js server (Express) and fetches video data using the YouTube API.
 
-Nice to have:
-- user comments?
-  
-Done:
-~~- Implement vote counters~~
-~~- Persist data in backend~~
-~~- "Suggest your own" section~~
+Frontend is made with React and Material Design.
