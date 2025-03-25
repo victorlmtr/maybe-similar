@@ -1,9 +1,50 @@
 import React, { useState, useEffect } from "react";
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
+import { ThemeProvider, createTheme, CssBaseline, Box } from "@mui/material";
+import { styled } from "@mui/material/styles";
 import Navbar from "./components/Navbar";
 import VideoGrid from "./components/VideoGrid";
 import FeedbackButtons from "./components/FeedbackButtons";
 import SuggestionForm from "./components/SuggestionForm";
+import "@fontsource/press-start-2p";
+import Sidebar from "./components/Sidebar";
+import { IconButton } from "@mui/material";
+import { Menu } from "@mui/icons-material";
+
+const drawerWidth = 340;
+
+const Main = styled("main", { shouldForwardProp: (prop) => prop !== "open" })(
+  ({ theme, open }) => ({
+    flexGrow: 1,
+    padding: theme.spacing(2), // Reduced from 3 to 2
+    paddingRight: theme.spacing(1), // Add smaller padding on the right
+    transition: theme.transitions.create("margin", {
+      easing: theme.transitions.easing.sharp,
+      duration: theme.transitions.duration.leavingScreen,
+    }),
+    marginRight: 0,
+    ...(open && {
+      transition: theme.transitions.create("margin", {
+        easing: theme.transitions.easing.easeOut,
+        duration: theme.transitions.duration.enteringScreen,
+      }),
+      marginRight: drawerWidth,
+    }),
+    width: "100%",
+    paddingTop: "88px",
+    minHeight: "100vh",
+    position: "relative",
+    overflow: "auto",
+  })
+);
+const darkTheme = createTheme({
+  palette: {
+    mode: "dark",
+  },
+  typography: {
+    fontFamily: '"Press Start 2P", cursive',
+  },
+});
 
 function App() {
   const [videoPairs, setVideoPairs] = useState([]);
@@ -12,6 +53,7 @@ function App() {
   const [sessionId] = useState(() =>
     Math.random().toString(36).substring(2, 15)
   );
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
     fetch("http://localhost:5000/api/videos")
@@ -51,7 +93,7 @@ function App() {
     const currentFeedback = updatedFeedback[currentPairIndex];
 
     if (currentFeedback === isSimilar) {
-      return; // No change in feedback
+      return;
     }
 
     updatedFeedback[currentPairIndex] = isSimilar;
@@ -111,6 +153,12 @@ function App() {
     }
   };
 
+  const handlePrevious = () => {
+    if (currentPairIndex > 0) {
+      setCurrentPairIndex(currentPairIndex - 1);
+    }
+  };
+
   const currentPair = videoPairs[currentPairIndex] || null;
   const totalVotes = currentPair
     ? currentPair.similarVotes + currentPair.notSimilarVotes
@@ -120,44 +168,78 @@ function App() {
     : 0;
 
   return (
-    <Router>
-      <Navbar />
-      <Routes>
-        <Route path="/add-suggestion" element={<SuggestionForm />} />
-        <Route
-          path="/"
-          element={
-            currentPair && currentPair.video1 && currentPair.video2 ? (
-              <>
-                <VideoGrid
-                  video1={currentPair.video1}
-                  video2={currentPair.video2}
+    <ThemeProvider theme={darkTheme}>
+      <CssBaseline />
+      <Router>
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            minHeight: "100vh",
+            bgcolor: "var(--md-sys-color-background)",
+          }}
+        >
+          <Navbar />
+          <Box sx={{ display: "flex", flex: 1, position: "relative" }}>
+            <Main open={sidebarOpen}>
+              <IconButton
+                onClick={() => setSidebarOpen(true)}
+                sx={{
+                  position: "fixed",
+                  right: sidebarOpen ? drawerWidth + 16 : 16,
+                  top: 72,
+                  color: "var(--md-sys-color-on-surface)",
+                  backgroundColor: "var(--md-sys-color-surface-container)",
+                  "&:hover": {
+                    backgroundColor:
+                      "var(--md-sys-color-surface-container-high)",
+                  },
+                  zIndex: 1,
+                }}
+              >
+                <Menu />
+              </IconButton>
+              <Routes>
+                <Route path="/add-suggestion" element={<SuggestionForm />} />
+                <Route
+                  path="/"
+                  element={
+                    currentPair && currentPair.video1 && currentPair.video2 ? (
+                      <Box>
+                        <VideoGrid
+                          video1={currentPair.video1}
+                          video2={currentPair.video2}
+                          averageScore={averageScore}
+                          username={currentPair.username}
+                          dateCreated={currentPair.date_added}
+                        />
+                        <FeedbackButtons
+                          onFeedback={handleFeedback}
+                          onNext={handleNext}
+                          onPrevious={handlePrevious}
+                          currentFeedback={feedback[currentPairIndex]}
+                          similarVotes={currentPair.similarVotes}
+                          notSimilarVotes={currentPair.notSimilarVotes}
+                        />
+                      </Box>
+                    ) : (
+                      <Box sx={{ color: "var(--md-sys-color-on-surface)" }}>
+                        Currently no videos to display.
+                      </Box>
+                    )
+                  }
                 />
-                <p>Suggested by: {currentPair.username}</p>
-                <p>
-                  Date Added:{" "}
-                  {new Date(currentPair.date_added).toLocaleString()}
-                </p>
-                <p>Video 1 Song: {currentPair.video1.songName}</p>
-                <p>Video 1 Artist: {currentPair.video1.artistName}</p>
-                <p>Video 2 Song: {currentPair.video2.songName}</p>
-                <p>Video 2 Artist: {currentPair.video2.artistName}</p>
-                <FeedbackButtons
-                  onFeedback={handleFeedback}
-                  onNext={handleNext}
-                  currentFeedback={feedback[currentPairIndex]}
-                  similarVotes={currentPair.similarVotes}
-                  notSimilarVotes={currentPair.notSimilarVotes}
-                  averageScore={averageScore}
-                />
-              </>
-            ) : (
-              <p>Currently no videos to display.</p>
-            )
-          }
-        />
-      </Routes>
-    </Router>
+              </Routes>
+            </Main>
+            <Sidebar
+              open={sidebarOpen}
+              onClose={() => setSidebarOpen(false)}
+              submissions={videoPairs}
+            />
+          </Box>
+        </Box>
+      </Router>
+    </ThemeProvider>
   );
 }
 

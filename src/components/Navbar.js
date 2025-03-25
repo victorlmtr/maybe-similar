@@ -1,45 +1,48 @@
 import React from "react";
 import { Link } from "react-router-dom";
+import { AppBar, Toolbar, Typography, Button, Box } from "@mui/material";
+import { styled } from "@mui/material/styles";
+
+const StyledAppBar = styled(AppBar)({
+  backgroundColor: "var(--md-sys-color-surface-container)",
+  position: "fixed",
+  top: 0,
+  left: 0,
+  right: 0,
+  zIndex: 1100,
+});
+
+const StyledButton = styled(Button)({
+  color: "var(--md-sys-color-on-surface)",
+  marginLeft: "1rem",
+});
 
 const Navbar = () => {
   return (
-    <nav className="navbar navbar-expand-lg navbar-dark bg-dark">
-      <div className="container-fluid">
-        <a className="navbar-brand" href="#">
-          MaybeSimilar?
-        </a>
-        <button
-          className="navbar-toggler"
-          type="button"
-          data-bs-toggle="collapse"
-          data-bs-target="#navbarNav"
-          aria-controls="navbarNav"
-          aria-expanded="false"
-          aria-label="Toggle navigation"
+    <StyledAppBar position="static">
+      <Toolbar>
+        <Typography
+          variant="h6"
+          sx={{
+            flexGrow: 1,
+            fontFamily: '"Press Start 2P"',
+            fontSize: "1rem",
+            color: "var(--md-sys-color-on-surface)",
+          }}
         >
-          <span className="navbar-toggler-icon"></span>
-        </button>
-        <div className="collapse navbar-collapse" id="navbarNav">
-          <ul className="navbar-nav">
-            <li className="nav-item">
-              <Link className="nav-link active" aria-current="page" to="/">
-                Accueil
-              </Link>
-            </li>
-            <li className="nav-item">
-              <Link className="nav-link" to="/add-suggestion">
-                Ajouter une suggestion
-              </Link>
-            </li>
-            <li className="nav-item">
-              <a className="nav-link" href="#">
-                Contact
-              </a>
-            </li>
-          </ul>
-        </div>
-      </div>
-    </nav>
+          MaybeSimilar?
+        </Typography>
+        <Box>
+          <StyledButton component={Link} to="/">
+            Home
+          </StyledButton>
+          <StyledButton component={Link} to="/add-suggestion">
+            Add Suggestion
+          </StyledButton>
+          <StyledButton>Contact</StyledButton>
+        </Box>
+      </Toolbar>
+    </StyledAppBar>
   );
 };
 
