@@ -10,16 +10,8 @@ dotenv.config();
 const app = express();
 const port = 5000;
 
-// Middleware
 app.use(cors());
 app.use(bodyParser.json());
-
-// Log environment variables (except password)
-console.log("DB_USER:", process.env.DB_USER);
-console.log("DB_HOST:", process.env.DB_HOST);
-console.log("DB_NAME:", process.env.DB_NAME);
-console.log("DB_PORT:", process.env.DB_PORT);
-console.log("YOUTUBE_API_KEY:", process.env.YOUTUBE_API_KEY);
 
 // PostgreSQL connection
 const pool = new Pool({
@@ -37,15 +29,23 @@ app.get("/api/videos", async (req, res) => {
     const videoPairs = result.rows;
 
     const videoDetailsPromises = videoPairs.map(async (pair) => {
-      const video1Details = await getVideoDetails(pair.video1_id);
-      const video2Details = await getVideoDetails(pair.video2_id);
-      return {
-        ...pair,
-        video1SongName: video1Details.songName,
-        video1ArtistName: video1Details.artistName,
-        video2SongName: video2Details.songName,
-        video2ArtistName: video2Details.artistName,
-      };
+      try {
+        const video1Details = await getVideoDetails(pair.video1_id);
+        const video2Details = await getVideoDetails(pair.video2_id);
+        return {
+          ...pair,
+          video1SongName: video1Details.songName,
+          video1ArtistName: video1Details.artistName,
+          video2SongName: video2Details.songName,
+          video2ArtistName: video2Details.artistName,
+        };
+      } catch (error) {
+        console.error(
+          `Error fetching video details for pair ID ${pair.id}:`,
+          error
+        );
+        return pair;
+      }
     });
 
     const videoPairsWithDetails = await Promise.all(videoDetailsPromises);
@@ -57,12 +57,58 @@ app.get("/api/videos", async (req, res) => {
 });
 
 app.post("/api/feedback", async (req, res) => {
-  const { pair_id, is_similar } = req.body;
+  const { pair_id, is_similar, session_id } = req.body;
   try {
-    await pool.query(
-      "INSERT INTO feedback (pair_id, is_similar) VALUES ($1, $2)",
-      [pair_id, is_similar]
+    // Check if there's already a vote from this session for this pair
+    const existingVote = await pool.query(
+      "SELECT * FROM feedback WHERE pair_id = $1 AND session_id = $2",
+      [pair_id, session_id]
     );
+
+    if (existingVote.rows.length > 0) {
+      // Update existing vote
+      const previousVote = existingVote.rows[0];
+      if (previousVote.is_similar !== is_similar) {
+        // Update the feedback
+        await pool.query(
+          "UPDATE feedback SET is_similar = $1 WHERE pair_id = $2 AND session_id = $3",
+          [is_similar, pair_id, session_id]
+        );
+
+        // Update vote counts
+        if (is_similar) {
+          await pool.query(
+            "UPDATE video_pairs SET similar_votes = similar_votes + 1, not_similar_votes = not_similar_votes - 1 WHERE id = $1",
+            [pair_id]
+          );
+        } else {
+          await pool.query(
+            "UPDATE video_pairs SET similar_votes = similar_votes - 1, not_similar_votes = not_similar_votes + 1 WHERE id = $1",
+            [pair_id]
+          );
+        }
+      }
+    } else {
+      // Insert new vote
+      await pool.query(
+        "INSERT INTO feedback (pair_id, is_similar, session_id) VALUES ($1, $2, $3)",
+        [pair_id, is_similar, session_id]
+      );
+
+      // Update vote counts
+      if (is_similar) {
+        await pool.query(
+          "UPDATE video_pairs SET similar_votes = similar_votes + 1 WHERE id = $1",
+          [pair_id]
+        );
+      } else {
+        await pool.query(
+          "UPDATE video_pairs SET not_similar_votes = not_similar_votes + 1 WHERE id = $1",
+          [pair_id]
+        );
+      }
+    }
+
     res.status(201).json({ message: "Feedback submitted" });
   } catch (err) {
     console.error(err.message);

@@ -6,11 +6,21 @@ const FeedbackButtons = ({
   currentFeedback,
   similarVotes,
   notSimilarVotes,
+  averageScore,
 }) => {
   return (
     <div>
-      <button onClick={() => onFeedback(true)}>Similar ({similarVotes})</button>
-      <button onClick={() => onFeedback(false)}>
+      <p>Average Score: {averageScore.toFixed(2)}</p>
+      <button
+        onClick={() => onFeedback(true)}
+        disabled={currentFeedback === true}
+      >
+        Similar ({similarVotes})
+      </button>
+      <button
+        onClick={() => onFeedback(false)}
+        disabled={currentFeedback === false}
+      >
         Not Similar ({notSimilarVotes})
       </button>
       <button onClick={onNext}>Next</button>

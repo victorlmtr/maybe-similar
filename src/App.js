@@ -9,13 +9,14 @@ function App() {
   const [videoPairs, setVideoPairs] = useState([]);
   const [currentPairIndex, setCurrentPairIndex] = useState(0);
   const [feedback, setFeedback] = useState([]);
-  const [voteCounts, setVoteCounts] = useState({ similar: 0, notSimilar: 0 });
+  const [sessionId] = useState(() =>
+    Math.random().toString(36).substring(2, 15)
+  );
 
   useEffect(() => {
     fetch("http://localhost:5000/api/videos")
       .then((response) => response.json())
       .then((data) => {
-        // Transform the fetched data to match the expected structure
         const transformedData = data.map((pair) => ({
           id: pair.id,
           username: pair.username,
@@ -47,16 +48,35 @@ function App() {
 
   const handleFeedback = (isSimilar) => {
     const updatedFeedback = [...feedback];
+    const currentFeedback = updatedFeedback[currentPairIndex];
+
+    if (currentFeedback === isSimilar) {
+      return; // No change in feedback
+    }
+
     updatedFeedback[currentPairIndex] = isSimilar;
     setFeedback(updatedFeedback);
 
-    const updatedVoteCounts = { ...voteCounts };
-    if (isSimilar) {
-      updatedVoteCounts.similar += 1;
+    const updatedVideoPairs = [...videoPairs];
+    const currentPair = updatedVideoPairs[currentPairIndex];
+
+    if (currentFeedback === null) {
+      if (isSimilar) {
+        currentPair.similarVotes += 1;
+      } else {
+        currentPair.notSimilarVotes += 1;
+      }
     } else {
-      updatedVoteCounts.notSimilar += 1;
+      if (isSimilar) {
+        currentPair.similarVotes += 1;
+        currentPair.notSimilarVotes -= 1;
+      } else {
+        currentPair.similarVotes -= 1;
+        currentPair.notSimilarVotes += 1;
+      }
     }
-    setVoteCounts(updatedVoteCounts);
+
+    setVideoPairs(updatedVideoPairs);
 
     fetch("http://localhost:5000/api/feedback", {
       method: "POST",
@@ -64,8 +84,9 @@ function App() {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        pair_id: videoPairs[currentPairIndex]?.id,
+        pair_id: currentPair.id,
         is_similar: isSimilar,
+        session_id: sessionId,
       }),
     })
       .then((response) => {
@@ -86,11 +107,17 @@ function App() {
     if (currentPairIndex < videoPairs.length - 1) {
       setCurrentPairIndex(currentPairIndex + 1);
     } else {
-      alert("Vous avez parcouru toutes les suggestions.");
+      alert("You have gone through all the suggestions.");
     }
   };
 
   const currentPair = videoPairs[currentPairIndex] || null;
+  const totalVotes = currentPair
+    ? currentPair.similarVotes + currentPair.notSimilarVotes
+    : 0;
+  const averageScore = totalVotes
+    ? (currentPair.similarVotes / totalVotes) * 100
+    : 0;
 
   return (
     <Router>
@@ -121,6 +148,7 @@ function App() {
                   currentFeedback={feedback[currentPairIndex]}
                   similarVotes={currentPair.similarVotes}
                   notSimilarVotes={currentPair.notSimilarVotes}
+                  averageScore={averageScore}
                 />
               </>
             ) : (
