@@ -6,11 +6,15 @@ Sometimes I think two songs sound similar, and I want to see if people agree wit
 
 
 To do:
-
-- Implement vote counters
-- Persist data in backend
-- "Suggest your own" section
+- fix vote counter
+- fix loading song name
+- implement material design
+- implement language selection
 
 Nice to have:
 - user comments?
   
+Done:
+~~- Implement vote counters~~
+~~- Persist data in backend~~
+~~- "Suggest your own" section~~
