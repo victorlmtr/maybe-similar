@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import YouTube from "react-youtube";
 import {
   Box,
@@ -70,6 +70,7 @@ const SuggestionForm = ({ refreshData }) => {
   const [videoSearch, setVideoSearch] = useState("");
   const [player, setPlayer] = useState(null);
   const [searchResults, setSearchResults] = useState([]);
+  const [shouldRedirect, setShouldRedirect] = useState(false);
 
   // New states for handling loading and errors
   const [isSearching, setIsSearching] = useState(false);
@@ -88,12 +89,47 @@ const SuggestionForm = ({ refreshData }) => {
     setSnackbarOpen(true);
   };
 
+  useEffect(() => {
+    const savedUsername = localStorage.getItem("username");
+    if (savedUsername) {
+      setUsername(savedUsername);
+    }
+  }, []);
+
   // Function to extract video ID and start time from the YouTube URL
   const extractVideoDetails = (url) => {
-    const urlObj = new URL(url);
-    const videoId = urlObj.searchParams.get("v");
-    const startTime = parseInt(urlObj.searchParams.get("t"), 10) || 0;
-    return { videoId, startTime };
+    try {
+      // Remove ?si parameter if present
+      url = url.split("?si=")[0];
+
+      let videoId,
+        startTime = 0;
+
+      // Handle youtu.be links
+      if (url.includes("youtu.be/")) {
+        const urlParts = url.split("youtu.be/")[1].split("?");
+        videoId = urlParts[0];
+
+        if (urlParts[1]) {
+          const params = new URLSearchParams(`?${urlParts[1]}`);
+          startTime = parseInt(params.get("t"), 10) || 0;
+        }
+      }
+      // Handle youtube.com links
+      else if (url.includes("youtube.com")) {
+        const urlObj = new URL(url);
+        videoId = urlObj.searchParams.get("v");
+        startTime = parseInt(urlObj.searchParams.get("t"), 10) || 0;
+      }
+      // Handle raw video IDs
+      else if (/^[A-Za-z0-9_-]{11}$/.test(url)) {
+        videoId = url;
+      }
+
+      return { videoId, startTime };
+    } catch (error) {
+      return { videoId: null, startTime: 0 };
+    }
   };
 
   const handleSearchSubmit = async (e) => {
@@ -159,6 +195,7 @@ const SuggestionForm = ({ refreshData }) => {
       : setVideo2(updatedVideoDetails);
   };
 
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -166,6 +203,7 @@ const SuggestionForm = ({ refreshData }) => {
 
     try {
       validateVideos();
+      localStorage.setItem("username", username);
 
       const response = await fetch("/maybe-similar/api/suggestions", {
         method: "POST",
@@ -181,10 +219,10 @@ const SuggestionForm = ({ refreshData }) => {
       }
 
       await response.json();
-      setSuccessDialogOpen(true);
       if (refreshData) {
-        refreshData();
+        await refreshData();
       }
+      setSuccessDialogOpen(true);
     } catch (error) {
       showSnackbar(error.message);
     } finally {
@@ -192,6 +230,7 @@ const SuggestionForm = ({ refreshData }) => {
     }
   };
 
+  // Modify dialog close handler to use timeout
   const handleSuccessDialogClose = () => {
     setSuccessDialogOpen(false);
     // Reset form
@@ -200,9 +239,19 @@ const SuggestionForm = ({ refreshData }) => {
     setVideo2({ id: "", start: 0, end: 15 });
     setVideoSearch("");
     setSearchResults([]);
-    // Navigate to home page
-    navigate("/");
+    // Set redirect flag
+    setShouldRedirect(true);
   };
+
+  // Add useEffect to handle redirect
+  useEffect(() => {
+    if (shouldRedirect) {
+      const timer = setTimeout(() => {
+        navigate("/");
+      }, 300); // Small delay to allow dialog animation to complete
+      return () => clearTimeout(timer);
+    }
+  }, [shouldRedirect, navigate]);
 
   return (
     <Box
@@ -236,8 +285,10 @@ const SuggestionForm = ({ refreshData }) => {
             disabled={isSearching}
             sx={{
               backgroundColor: "var(--md-sys-color-primary)",
+              color: "var(--md-sys-color-on-primary)",
               "&:hover": {
                 backgroundColor: "var(--md-sys-color-primary-container)",
+                color: "var(--md-sys-color-on-primary-container)",
               },
             }}
           >
@@ -338,18 +389,14 @@ const SuggestionForm = ({ refreshData }) => {
                 value={video1.id}
                 InputProps={{ readOnly: true }}
                 size="small"
+                sx={{ flexGrow: 1 }}
               />
               <TextField
                 label="Start Time"
                 value={video1.start}
                 InputProps={{ readOnly: true }}
                 size="small"
-              />
-              <TextField
-                label="End Time"
-                value={video1.end}
-                InputProps={{ readOnly: true }}
-                size="small"
+                sx={{ width: "120px" }}
               />
             </Box>
           </Box>
@@ -364,18 +411,14 @@ const SuggestionForm = ({ refreshData }) => {
                 value={video2.id}
                 InputProps={{ readOnly: true }}
                 size="small"
+                sx={{ flexGrow: 1 }}
               />
               <TextField
                 label="Start Time"
                 value={video2.start}
                 InputProps={{ readOnly: true }}
                 size="small"
-              />
-              <TextField
-                label="End Time"
-                value={video2.end}
-                InputProps={{ readOnly: true }}
-                size="small"
+                sx={{ width: "120px" }}
               />
             </Box>
           </Box>
@@ -387,8 +430,10 @@ const SuggestionForm = ({ refreshData }) => {
             disabled={isSubmitting}
             sx={{
               backgroundColor: "var(--md-sys-color-primary)",
+              color: "var(--md-sys-color-on-primary)",
               "&:hover": {
                 backgroundColor: "var(--md-sys-color-primary-container)",
+                color: "var(--md-sys-color-on-primary-container)",
               },
             }}
           >
@@ -405,6 +450,9 @@ const SuggestionForm = ({ refreshData }) => {
         open={successDialogOpen}
         onClose={handleSuccessDialogClose}
         aria-labelledby="success-dialog-title"
+        TransitionProps={{
+          onExited: () => setShouldRedirect(true),
+        }}
       >
         <DialogTitle id="success-dialog-title">
           <Box

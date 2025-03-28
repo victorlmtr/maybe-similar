@@ -32,7 +32,7 @@ const Main = styled("main", { shouldForwardProp: (prop) => prop !== "open" })(
       marginRight: drawerWidth,
     }),
     width: "100%",
-    paddingTop: "76px",
+    paddingTop: "96px",
     minHeight: "100vh",
     position: "relative",
     overflow: "auto",
@@ -277,13 +277,38 @@ function AppContent() {
               path="/add-suggestion"
               element={
                 <SuggestionForm
-                  refreshData={() => {
-                    fetch("/maybe-similar/api/videos")
-                      .then((response) => response.json())
-                      .then((data) => {
-                        setVideoPairs(data);
-                        setFeedback(data.map(() => null));
-                      });
+                  refreshData={async () => {
+                    try {
+                      const response = await fetch("/maybe-similar/api/videos");
+                      const data = await response.json();
+                      const transformedData = data.map((pair) => ({
+                        id: pair.id,
+                        username: pair.username,
+                        video1: {
+                          id: pair.video1_id,
+                          start: pair.video1_start,
+                          end: pair.video1_end,
+                          songName: pair.video1SongName,
+                          artistName: pair.video1ArtistName,
+                        },
+                        video2: {
+                          id: pair.video2_id,
+                          start: pair.video2_start,
+                          end: pair.video2_end,
+                          songName: pair.video2SongName,
+                          artistName: pair.video2ArtistName,
+                        },
+                        date_added: pair.date_added,
+                        similarVotes: pair.similar_votes || 0,
+                        notSimilarVotes: pair.not_similar_votes || 0,
+                      }));
+                      // Sort the data before setting state
+                      const sortedData = getSortedVideoPairs(transformedData);
+                      setVideoPairs(sortedData);
+                      setFeedback(sortedData.map(() => null));
+                    } catch (error) {
+                      console.error("Error refreshing data:", error);
+                    }
                   }}
                 />
               }

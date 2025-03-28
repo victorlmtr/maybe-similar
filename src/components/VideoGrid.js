@@ -14,28 +14,35 @@ const StyledPaper = styled(Paper)(({ theme }) => ({
   flexDirection: "column",
   alignItems: "center",
   overflow: "hidden",
+  minWidth: "300px",
 }));
 
-const VideoTitle = styled(Typography)({
+const VideoTitle = styled(Typography)(({ theme }) => ({
   fontFamily: '"Press Start 2P"',
   color: "var(--md-sys-color-on-surface)",
   marginBottom: "1rem",
-  fontSize: "0.9rem",
+  fontSize: "0.8rem",
   width: "100%",
   textAlign: "center",
   wordWrap: "break-word",
   lineHeight: 1.6,
-});
+  display: "-webkit-box",
+  WebkitLineClamp: 2,
+  WebkitBoxOrient: "vertical",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  height: "3.2rem",
+}));
 
-const VsBox = styled(Box)({
+const VsBox = styled(Box)(({ theme }) => ({
   display: "flex",
   flexDirection: "column",
   alignItems: "center",
-  justifyContent: "center",
+  justifyContent: "flex-start",
   minWidth: "100px",
-  padding: "0",
-  margin: "0 -0.5rem",
-});
+  padding: theme.spacing(2),
+  marginTop: "4rem",
+}));
 
 const VsText = styled(Typography)({
   fontFamily: '"Press Start 2P"',
@@ -45,16 +52,16 @@ const VsText = styled(Typography)({
   alignSelf: "center",
 });
 
-const VideoContainer = styled(Box)({
+const VideoContainer = styled(Box)(({ theme }) => ({
   display: "flex",
-  alignItems: "center",
+  alignItems: "flex-start",
   justifyContent: "center",
-  gap: "0.5rem",
+  gap: theme.spacing(2),
   flexWrap: "wrap",
   margin: "0 auto",
   width: "100%",
-  maxWidth: "1500px",
-});
+  padding: theme.spacing(2),
+}));
 
 const ScoreCircle = styled(Box)({
   position: "relative",
@@ -127,6 +134,9 @@ const VideoGrid = ({ video1, video2, averageScore, username, dateCreated }) => {
         flexDirection: "column",
         alignItems: "center",
         width: "100%",
+        paddingTop: "2rem",
+        //maxWidth: "1400px",
+        margin: "0 auto",
       }}
     >
       <VideoContainer>
