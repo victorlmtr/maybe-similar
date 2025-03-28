@@ -1,7 +1,14 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import React, { useState, useEffect } from "react";
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
-import { ThemeProvider, createTheme, CssBaseline, Box } from "@mui/material";
+import {
+  ThemeProvider,
+  createTheme,
+  CssBaseline,
+  Box,
+  useTheme,
+  useMediaQuery,
+} from "@mui/material";
 import { styled } from "@mui/material/styles";
 import Navbar from "./components/Navbar";
 import VideoGrid from "./components/VideoGrid";
@@ -35,9 +42,13 @@ const Main = styled("main", { shouldForwardProp: (prop) => prop !== "open" })(
     paddingTop: "96px",
     minHeight: "100vh",
     position: "relative",
-    overflow: "auto",
+    overflow: "hidden",
     display: "flex",
     justifyContent: "center",
+    "& > *": {
+      width: "100%",
+      maxWidth: "100%",
+    },
   })
 );
 
@@ -51,6 +62,10 @@ const darkTheme = createTheme({
 });
 
 function AppContent() {
+  const theme = useTheme();
+  const isLargeScreen = useMediaQuery(theme.breakpoints.up("lg"));
+  // Initialize sidebarOpen based on screen size
+  const [sidebarOpen, setSidebarOpen] = useState(() => isLargeScreen);
   const [videoPairs, setVideoPairs] = useState([]);
   const [currentPairIndex, setCurrentPairIndex] = useState(0);
   const [feedback, setFeedback] = useState([]);
@@ -59,8 +74,11 @@ function AppContent() {
   );
   const location = useLocation();
   const navigate = useNavigate();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sortBy, setSortBy] = useState("date");
+
+  useEffect(() => {
+    setSidebarOpen(isLargeScreen);
+  }, [isLargeScreen]);
 
   const getSortedVideoPairs = (pairs) => {
     return [...pairs].sort((a, b) => {
@@ -255,93 +273,104 @@ function AppContent() {
     >
       <Navbar />
       <Box sx={{ display: "flex", flex: 1, position: "relative" }}>
+        <IconButton
+          onClick={() => setSidebarOpen(!sidebarOpen)}
+          sx={{
+            position: "fixed",
+            right: sidebarOpen ? drawerWidth + 16 : 16,
+            top: 80,
+            color: "var(--md-sys-color-on-surface)",
+            backgroundColor: "var(--md-sys-color-surface-container)",
+            "&:hover": {
+              backgroundColor: "var(--md-sys-color-surface-container-high)",
+            },
+            zIndex: theme.zIndex.drawer + 1,
+          }}
+        >
+          <Menu />
+        </IconButton>
         <Main open={sidebarOpen}>
-          <IconButton
-            onClick={() => setSidebarOpen(!sidebarOpen)}
+          <Box
             sx={{
-              position: "fixed",
-              right: sidebarOpen ? drawerWidth + 16 : 16,
-              top: 80,
-              color: "var(--md-sys-color-on-surface)",
-              backgroundColor: "var(--md-sys-color-surface-container)",
-              "&:hover": {
-                backgroundColor: "var(--md-sys-color-surface-container-high)",
-              },
-              zIndex: 1,
+              width: "100%",
+              display: "flex",
+              justifyContent: "center",
+              position: "relative",
             }}
           >
-            <Menu />
-          </IconButton>
-          <Routes>
-            <Route
-              path="/add-suggestion"
-              element={
-                <SuggestionForm
-                  refreshData={async () => {
-                    try {
-                      const response = await fetch("/maybe-similar/api/videos");
-                      const data = await response.json();
-                      const transformedData = data.map((pair) => ({
-                        id: pair.id,
-                        username: pair.username,
-                        video1: {
-                          id: pair.video1_id,
-                          start: pair.video1_start,
-                          end: pair.video1_end,
-                          songName: pair.video1SongName,
-                          artistName: pair.video1ArtistName,
-                        },
-                        video2: {
-                          id: pair.video2_id,
-                          start: pair.video2_start,
-                          end: pair.video2_end,
-                          songName: pair.video2SongName,
-                          artistName: pair.video2ArtistName,
-                        },
-                        date_added: pair.date_added,
-                        similarVotes: pair.similar_votes || 0,
-                        notSimilarVotes: pair.not_similar_votes || 0,
-                      }));
-                      // Sort the data before setting state
-                      const sortedData = getSortedVideoPairs(transformedData);
-                      setVideoPairs(sortedData);
-                      setFeedback(sortedData.map(() => null));
-                    } catch (error) {
-                      console.error("Error refreshing data:", error);
-                    }
-                  }}
-                />
-              }
-            />
-            <Route
-              path="/"
-              element={
-                currentPair && currentPair.video1 && currentPair.video2 ? (
-                  <Box>
-                    <VideoGrid
-                      video1={currentPair.video1}
-                      video2={currentPair.video2}
-                      averageScore={averageScore}
-                      username={currentPair.username}
-                      dateCreated={currentPair.date_added}
-                    />
-                    <FeedbackButtons
-                      onFeedback={handleFeedback}
-                      onNext={handleNext}
-                      onPrevious={handlePrevious}
-                      currentFeedback={feedback[currentPairIndex]}
-                      similarVotes={currentPair.similarVotes}
-                      notSimilarVotes={currentPair.notSimilarVotes}
-                    />
-                  </Box>
-                ) : (
-                  <Box sx={{ color: "var(--md-sys-color-on-surface)" }}>
-                    Currently no videos to display.
-                  </Box>
-                )
-              }
-            />
-          </Routes>
+            <Routes>
+              <Route
+                path="/add-suggestion"
+                element={
+                  <SuggestionForm
+                    refreshData={async () => {
+                      try {
+                        const response = await fetch(
+                          "/maybe-similar/api/videos"
+                        );
+                        const data = await response.json();
+                        const transformedData = data.map((pair) => ({
+                          id: pair.id,
+                          username: pair.username,
+                          video1: {
+                            id: pair.video1_id,
+                            start: pair.video1_start,
+                            end: pair.video1_end,
+                            songName: pair.video1SongName,
+                            artistName: pair.video1ArtistName,
+                          },
+                          video2: {
+                            id: pair.video2_id,
+                            start: pair.video2_start,
+                            end: pair.video2_end,
+                            songName: pair.video2SongName,
+                            artistName: pair.video2ArtistName,
+                          },
+                          date_added: pair.date_added,
+                          similarVotes: pair.similar_votes || 0,
+                          notSimilarVotes: pair.not_similar_votes || 0,
+                        }));
+                        // Sort the data before setting state
+                        const sortedData = getSortedVideoPairs(transformedData);
+                        setVideoPairs(sortedData);
+                        setFeedback(sortedData.map(() => null));
+                      } catch (error) {
+                        console.error("Error refreshing data:", error);
+                      }
+                    }}
+                  />
+                }
+              />
+              <Route
+                path="/"
+                element={
+                  currentPair && currentPair.video1 && currentPair.video2 ? (
+                    <Box>
+                      <VideoGrid
+                        video1={currentPair.video1}
+                        video2={currentPair.video2}
+                        averageScore={averageScore}
+                        username={currentPair.username}
+                        dateCreated={currentPair.date_added}
+                      />
+                      <FeedbackButtons
+                        onFeedback={handleFeedback}
+                        onNext={handleNext}
+                        onPrevious={handlePrevious}
+                        currentFeedback={feedback[currentPairIndex]}
+                        similarVotes={currentPair.similarVotes}
+                        notSimilarVotes={currentPair.notSimilarVotes}
+                      />
+                    </Box>
+                  ) : (
+                    <Box sx={{ color: "var(--md-sys-color-on-surface)" }}>
+                      Currently no videos to display.
+                    </Box>
+                  )
+                }
+              />
+            </Routes>
+          </Box>
         </Main>
         <Sidebar
           open={sidebarOpen}
@@ -349,6 +378,7 @@ function AppContent() {
           submissions={videoPairs}
           sortBy={sortBy}
           onSortChange={(newSortBy) => setSortBy(newSortBy)}
+          currentPairId={currentPair?.id}
         />
       </Box>
     </Box>

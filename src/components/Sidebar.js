@@ -47,11 +47,14 @@ const VsDivider = styled(Typography)({
   textAlign: "center",
 });
 
-const StyledCard = styled(Card)(({ theme }) => ({
-  backgroundColor: "var(--md-sys-color-surface-container)",
+const StyledCard = styled(Card)(({ theme, isSelected }) => ({
+  backgroundColor: isSelected
+    ? "var(--md-sys-color-surface-container-high)"
+    : "var(--md-sys-color-surface-container)",
   marginBottom: "1rem",
   cursor: "pointer",
   padding: theme.spacing(1),
+  border: isSelected ? "2px solid var(--md-sys-color-primary)" : "none",
   "&:hover": {
     backgroundColor: "var(--md-sys-color-surface-container-high)",
   },
@@ -83,7 +86,14 @@ const getScoreColor = (score) => {
   return "rgb(46, 106, 68)";
 };
 
-const Sidebar = ({ open, onClose, submissions, sortBy, onSortChange }) => {
+const Sidebar = ({
+  open,
+  onClose,
+  submissions,
+  sortBy,
+  onSortChange,
+  currentPairId,
+}) => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const handleSortChange = (event) => {
@@ -195,6 +205,7 @@ const Sidebar = ({ open, onClose, submissions, sortBy, onSortChange }) => {
               <StyledCard
                 key={submission.id}
                 onClick={() => handleCardClick(submission)}
+                isSelected={submission.id === currentPairId}
               >
                 <CardContentStyled>
                   <Box sx={{ textAlign: "center", mb: 2 }}>
