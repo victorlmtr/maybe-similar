@@ -1,5 +1,49 @@
 import React, { useState } from "react";
 import YouTube from "react-youtube";
+import {
+  Box,
+  Typography,
+  TextField,
+  Button,
+  Paper,
+  List,
+  ListItem,
+  ListItemButton,
+  ListItemText,
+  InputAdornment,
+} from "@mui/material";
+import { Search } from "@mui/icons-material";
+import { styled } from "@mui/material/styles";
+
+const StyledPaper = styled(Paper)(({ theme }) => ({
+  backgroundColor: "var(--md-sys-color-surface-container)",
+  padding: theme.spacing(3),
+  marginBottom: theme.spacing(2),
+  width: "100%",
+  maxWidth: "800px",
+}));
+
+const Title = styled(Typography)({
+  fontFamily: '"Press Start 2P"',
+  fontSize: "1.2rem",
+  marginBottom: "2rem",
+  textAlign: "center",
+});
+
+const VideoContainer = styled(Box)({
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  gap: "1rem",
+  marginBottom: "2rem",
+});
+
+const ButtonContainer = styled(Box)({
+  display: "flex",
+  gap: "1rem",
+  marginTop: "1rem",
+  justifyContent: "center",
+});
 
 const SuggestionForm = () => {
   const [username, setUsername] = useState("");
@@ -86,76 +130,196 @@ const SuggestionForm = () => {
   };
 
   return (
-    <div>
-      <form onSubmit={handleSearchSubmit}>
-        <label>Search for a YouTube video:</label>
-        <input
-          type="text"
-          value={videoSearch}
-          onChange={(e) => setVideoSearch(e.target.value)}
-          placeholder="Enter song name or YouTube URL"
-          required
-        />
-        <button type="submit">Search</button>
-      </form>
+    <Box
+      sx={{ display: "flex", justifyContent: "center", width: "100%", p: 2 }}
+    >
+      <StyledPaper elevation={3}>
+        <Title>Add a new suggestion</Title>
 
-      {searchResults.length > 0 && (
-        <div>
-          <h3>Search Results:</h3>
-          <ul>
-            {searchResults.map((result) => (
-              <li key={result.id.videoId}>
-                <button
-                  onClick={() =>
-                    player.loadVideoById({ videoId: result.id.videoId })
-                  }
-                >
-                  {result.snippet.title}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+        {/* Search Form */}
+        <Box component="form" onSubmit={handleSearchSubmit} sx={{ mb: 4 }}>
+          <TextField
+            fullWidth
+            variant="outlined"
+            value={videoSearch}
+            onChange={(e) => setVideoSearch(e.target.value)}
+            placeholder="Enter song name or YouTube URL"
+            required
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <Search />
+                </InputAdornment>
+              ),
+            }}
+            sx={{ mb: 2 }}
+          />
+          <Button
+            type="submit"
+            variant="contained"
+            fullWidth
+            sx={{
+              backgroundColor: "var(--md-sys-color-primary)",
+              "&:hover": {
+                backgroundColor: "var(--md-sys-color-primary-container)",
+              },
+            }}
+          >
+            Search
+          </Button>
+        </Box>
 
-      <YouTube
-        videoId=""
-        opts={{ height: "390", width: "640", playerVars: { autoplay: 1 } }}
-        onReady={handlePlayerReady}
-      />
+        {/* Search Results */}
+        {searchResults.length > 0 && (
+          <Box sx={{ mb: 4 }}>
+            <Typography
+              variant="h6"
+              sx={{ mb: 2, fontFamily: '"Press Start 2P"', fontSize: "0.9rem" }}
+            >
+              Search Results:
+            </Typography>
+            <List>
+              {searchResults.map((result) => (
+                <ListItem key={result.id.videoId} disablePadding>
+                  <ListItemButton
+                    onClick={() =>
+                      player.loadVideoById({ videoId: result.id.videoId })
+                    }
+                    sx={{
+                      backgroundColor:
+                        "var(--md-sys-color-surface-container-high)",
+                      mb: 1,
+                      borderRadius: 1,
+                    }}
+                  >
+                    <ListItemText primary={result.snippet.title} />
+                  </ListItemButton>
+                </ListItem>
+              ))}
+            </List>
+          </Box>
+        )}
 
-      <button onClick={() => handleVideoSelected(1)}>Use for Video 1</button>
-      <button onClick={() => handleVideoSelected(2)}>Use for Video 2</button>
+        {/* Video Player */}
+        <VideoContainer>
+          <YouTube
+            videoId=""
+            opts={{
+              height: "315",
+              width: "560",
+              playerVars: { autoplay: 1 },
+            }}
+            onReady={handlePlayerReady}
+          />
 
-      <form onSubmit={handleSubmit}>
-        <div>
-          <label>Username:</label>
-          <input
-            type="text"
+          <ButtonContainer>
+            <Button
+              variant="contained"
+              onClick={() => handleVideoSelected(1)}
+              sx={{
+                backgroundColor: "var(--md-sys-color-secondary-container)",
+                color: "var(--md-sys-color-on-secondary-container)",
+              }}
+            >
+              Use for Video 1
+            </Button>
+            <Button
+              variant="contained"
+              onClick={() => handleVideoSelected(2)}
+              sx={{
+                backgroundColor: "var(--md-sys-color-secondary-container)",
+                color: "var(--md-sys-color-on-secondary-container)",
+              }}
+            >
+              Use for Video 2
+            </Button>
+          </ButtonContainer>
+        </VideoContainer>
+
+        {/* Submission Form */}
+        <Box component="form" onSubmit={handleSubmit}>
+          <TextField
+            fullWidth
+            label="Username"
+            variant="outlined"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             required
+            sx={{ mb: 3 }}
           />
-        </div>
-        <div>
-          <label>Video 1 ID:</label>
-          <input type="text" value={video1.id} readOnly />
-          <label>Start Time:</label>
-          <input type="number" value={video1.start} readOnly />
-          <label>End Time:</label>
-          <input type="number" value={video1.end} readOnly />
-        </div>
-        <div>
-          <label>Video 2 ID:</label>
-          <input type="text" value={video2.id} readOnly />
-          <label>Start Time:</label>
-          <input type="number" value={video2.start} readOnly />
-          <label>End Time:</label>
-          <input type="number" value={video2.end} readOnly />
-        </div>
-        <button type="submit">Submit</button>
-      </form>
-    </div>
+
+          <Typography variant="h6" sx={{ mb: 2 }}>
+            Selected Videos:
+          </Typography>
+
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="subtitle1" sx={{ mb: 1 }}>
+              Video 1
+            </Typography>
+            <Box sx={{ display: "flex", gap: 2 }}>
+              <TextField
+                label="Video ID"
+                value={video1.id}
+                InputProps={{ readOnly: true }}
+                size="small"
+              />
+              <TextField
+                label="Start Time"
+                value={video1.start}
+                InputProps={{ readOnly: true }}
+                size="small"
+              />
+              <TextField
+                label="End Time"
+                value={video1.end}
+                InputProps={{ readOnly: true }}
+                size="small"
+              />
+            </Box>
+          </Box>
+
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="subtitle1" sx={{ mb: 1 }}>
+              Video 2
+            </Typography>
+            <Box sx={{ display: "flex", gap: 2 }}>
+              <TextField
+                label="Video ID"
+                value={video2.id}
+                InputProps={{ readOnly: true }}
+                size="small"
+              />
+              <TextField
+                label="Start Time"
+                value={video2.start}
+                InputProps={{ readOnly: true }}
+                size="small"
+              />
+              <TextField
+                label="End Time"
+                value={video2.end}
+                InputProps={{ readOnly: true }}
+                size="small"
+              />
+            </Box>
+          </Box>
+
+          <Button
+            type="submit"
+            variant="contained"
+            fullWidth
+            sx={{
+              backgroundColor: "var(--md-sys-color-primary)",
+              "&:hover": {
+                backgroundColor: "var(--md-sys-color-primary-container)",
+              },
+            }}
+          >
+            Submit Suggestion
+          </Button>
+        </Box>
+      </StyledPaper>
+    </Box>
   );
 };
 

@@ -16,8 +16,8 @@ const drawerWidth = 340;
 const Main = styled("main", { shouldForwardProp: (prop) => prop !== "open" })(
   ({ theme, open }) => ({
     flexGrow: 1,
-    padding: theme.spacing(2), // Reduced from 3 to 2
-    paddingRight: theme.spacing(1), // Add smaller padding on the right
+    padding: theme.spacing(2),
+    paddingRight: theme.spacing(1),
     transition: theme.transitions.create("margin", {
       easing: theme.transitions.easing.sharp,
       duration: theme.transitions.duration.leavingScreen,
@@ -31,18 +31,21 @@ const Main = styled("main", { shouldForwardProp: (prop) => prop !== "open" })(
       marginRight: drawerWidth,
     }),
     width: "100%",
-    paddingTop: "88px",
+    paddingTop: "76px",
     minHeight: "100vh",
     position: "relative",
     overflow: "auto",
+    display: "flex",
+    justifyContent: "center",
   })
 );
+
 const darkTheme = createTheme({
   palette: {
     mode: "dark",
   },
   typography: {
-    fontFamily: '"Press Start 2P", cursive',
+    fontFamily: "Roboto, sans-serif",
   },
 });
 
@@ -183,11 +186,11 @@ function App() {
           <Box sx={{ display: "flex", flex: 1, position: "relative" }}>
             <Main open={sidebarOpen}>
               <IconButton
-                onClick={() => setSidebarOpen(true)}
+                onClick={() => setSidebarOpen(!sidebarOpen)}
                 sx={{
                   position: "fixed",
                   right: sidebarOpen ? drawerWidth + 16 : 16,
-                  top: 72,
+                  top: 80,
                   color: "var(--md-sys-color-on-surface)",
                   backgroundColor: "var(--md-sys-color-surface-container)",
                   "&:hover": {

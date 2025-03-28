@@ -3,18 +3,37 @@ import YouTube from "react-youtube";
 import { Box, Typography, Paper, CircularProgress } from "@mui/material";
 import { styled } from "@mui/material/styles";
 
+//Single Video container
 const StyledPaper = styled(Paper)(({ theme }) => ({
   backgroundColor: "var(--md-sys-color-surface-container)",
-  padding: theme.spacing(2),
+  padding: theme.spacing(1.5),
   marginBottom: theme.spacing(2),
-  width: "fit-content",
+  width: "480px",
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  overflow: "hidden",
 }));
 
 const VideoTitle = styled(Typography)({
   fontFamily: '"Press Start 2P"',
   color: "var(--md-sys-color-on-surface)",
   marginBottom: "1rem",
-  fontSize: "1rem",
+  fontSize: "0.9rem",
+  width: "100%",
+  textAlign: "center",
+  wordWrap: "break-word",
+  lineHeight: 1.6,
+});
+
+const VsBox = styled(Box)({
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  justifyContent: "center",
+  minWidth: "100px",
+  padding: "0",
+  margin: "0 -0.5rem",
 });
 
 const VsText = styled(Typography)({
@@ -27,12 +46,12 @@ const VsText = styled(Typography)({
 
 const VideoContainer = styled(Box)({
   display: "flex",
-  alignItems: "flex-start",
+  alignItems: "center",
   justifyContent: "center",
   gap: "0.5rem",
   flexWrap: "wrap",
-  maxWidth: "1200px",
-  margin: "0 auto",
+  margin: "0 1rem",
+  width: "fit-content",
 });
 
 const ScoreCircle = styled(Box)({
@@ -42,9 +61,9 @@ const ScoreCircle = styled(Box)({
 });
 
 const SubmissionInfo = styled(Typography)({
-  fontFamily: '"Press Start 2P"',
+  fontFamily: "Roboto, sans-serif",
   color: "var(--md-sys-color-on-surface-variant)",
-  fontSize: "0.8rem",
+  fontSize: "0.9rem",
   textAlign: "center",
   marginTop: "2rem",
 });
@@ -57,8 +76,8 @@ const getScoreColor = (score) => {
 
 const VideoGrid = ({ video1, video2, averageScore, username, dateCreated }) => {
   const getPlayerOptions = (video) => ({
-    height: "315", // Reduced height
-    width: "560", // Reduced width
+    height: "270",
+    width: "480",
     playerVars: {
       start: video.start,
       end: video.end,
@@ -77,7 +96,12 @@ const VideoGrid = ({ video1, video2, averageScore, username, dateCreated }) => {
 
   return (
     <Box
-      sx={{ display: "flex", flexDirection: "column", alignItems: "center" }}
+      sx={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        width: "100%",
+      }}
     >
       <VideoContainer>
         <StyledPaper elevation={3}>
@@ -85,15 +109,7 @@ const VideoGrid = ({ video1, video2, averageScore, username, dateCreated }) => {
           <YouTube videoId={video1.id} opts={getPlayerOptions(video1)} />
         </StyledPaper>
 
-        <Box
-          sx={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            minWidth: "200px",
-          }}
-        >
+        <VsBox>
           <VsText>VS.</VsText>
           <ScoreCircle>
             <CircularProgress
@@ -139,7 +155,7 @@ const VideoGrid = ({ video1, video2, averageScore, username, dateCreated }) => {
               </Typography>
             </Box>
           </ScoreCircle>
-        </Box>
+        </VsBox>
 
         <StyledPaper elevation={3}>
           <VideoTitle>{video2.songName}</VideoTitle>

@@ -1,6 +1,6 @@
 {
-  "short_name": "React App",
-  "name": "Create React App Sample",
+  "short_name": "MaybeSimilar",
+  "name": "MaybeSimilar - Think two songs sound similar?",
   "icons": [
     {
       "src": "favicon.ico",

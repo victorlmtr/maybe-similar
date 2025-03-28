@@ -23,24 +23,58 @@ const drawerWidth = 340;
 const DrawerHeader = styled(Box)(({ theme }) => ({
   display: "flex",
   alignItems: "center",
-  padding: theme.spacing(2),
+  padding: theme.spacing(1),
+  paddingLeft: theme.spacing(2),
+  paddingRight: theme.spacing(2),
   justifyContent: "space-between",
   backgroundColor: "var(--md-sys-color-secondary-container)",
+  borderBottom: "1px solid rgba(255, 255, 255, 0.12)",
 }));
 
-const StyledCard = styled(Card)({
+const SongTitle = styled(Typography)({
+  color: "var(--md-sys-color-on-surface)",
+  fontSize: "0.9rem",
+  fontFamily: "Roboto, sans-serif",
+  lineHeight: 1.4,
+  wordWrap: "break-word",
+});
+
+const VsDivider = styled(Typography)({
+  fontFamily: '"Press Start 2P"',
+  fontSize: "0.8rem",
+  color: "var(--md-sys-color-on-surface)",
+  margin: "0.5rem 0",
+  textAlign: "center",
+});
+
+const StyledCard = styled(Card)(({ theme }) => ({
   backgroundColor: "var(--md-sys-color-surface-container)",
   marginBottom: "1rem",
   cursor: "pointer",
+  padding: theme.spacing(1),
   "&:hover": {
     backgroundColor: "var(--md-sys-color-surface-container-high)",
   },
-});
+}));
 
 const ScoreCircle = styled(Box)({
   position: "relative",
   display: "inline-flex",
   margin: "0.5rem 0",
+});
+
+const ScoreContainer = styled(Box)({
+  position: "absolute",
+  bottom: 8,
+  right: 8,
+});
+
+const CardContentStyled = styled(CardContent)({
+  display: "flex",
+  flexDirection: "column",
+  padding: "8px !important",
+  position: "relative",
+  minHeight: "180px",
 });
 
 const getScoreColor = (score) => {
@@ -91,6 +125,9 @@ const Sidebar = ({ open, onClose, submissions }) => {
         "& .MuiDrawer-paper": {
           width: drawerWidth,
           backgroundColor: "var(--md-sys-color-secondary-container)",
+          top: "64px", // Navbar height
+          height: "calc(100% - 64px)",
+          boxSizing: "border-box",
         },
       }}
       variant="persistent"
@@ -100,7 +137,7 @@ const Sidebar = ({ open, onClose, submissions }) => {
       <DrawerHeader>
         <Typography
           variant="h6"
-          sx={{ fontFamily: '"Press Start 2P"', fontSize: "1rem" }}
+          sx={{ fontFamily: '"Press Start 2P"', fontSize: "0.9rem" }}
         >
           Submissions
         </Typography>
@@ -147,85 +184,86 @@ const Sidebar = ({ open, onClose, submissions }) => {
                   100
                 : 0;
 
+            const formatDate = (dateString) => {
+              const date = new Date(dateString);
+              return date.toLocaleDateString("en-US", {
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+              });
+            };
+
             return (
               <StyledCard
                 key={submission.id}
                 onClick={() => handleCardClick(index)}
               >
-                <CardContent>
+                <CardContentStyled>
+                  <Box sx={{ textAlign: "center", mb: 2 }}>
+                    <SongTitle>{submission.video1.songName}</SongTitle>
+                    <VsDivider>VS.</VsDivider>
+                    <SongTitle>{submission.video2.songName}</SongTitle>
+                  </Box>
+
                   <Typography
                     sx={{
-                      fontFamily: '"Press Start 2P"',
                       fontSize: "0.8rem",
-                      mb: 1,
+                      color: "var(--md-sys-color-on-surface-variant)",
+                      fontFamily: "Roboto, sans-serif",
+                      mt: "auto",
+                      textAlign: "center",
                     }}
                   >
-                    {submission.video1.songName} vs.{" "}
-                    {submission.video2.songName}
+                    suggested by {submission.username} on{" "}
+                    {formatDate(submission.date_added)}
                   </Typography>
 
-                  <ScoreCircle>
-                    <CircularProgress
-                      variant="determinate"
-                      value={score}
-                      size={40}
-                      thickness={4}
-                      sx={{
-                        color: getScoreColor(score),
-                        position: "absolute",
-                      }}
-                    />
-                    <CircularProgress
-                      variant="determinate"
-                      value={100}
-                      size={40}
-                      thickness={4}
-                      sx={{
-                        color: "var(--md-sys-color-surface-variant)",
-                        opacity: 0.2,
-                      }}
-                    />
-                    <Box
-                      sx={{
-                        top: 0,
-                        left: 0,
-                        bottom: 0,
-                        right: 0,
-                        position: "absolute",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
-                    >
-                      <Typography
+                  <ScoreContainer>
+                    <ScoreCircle>
+                      <CircularProgress
+                        variant="determinate"
+                        value={score}
+                        size={40}
+                        thickness={4}
                         sx={{
-                          fontSize: "0.6rem",
-                          fontFamily: '"Press Start 2P"',
+                          color: getScoreColor(score),
+                          position: "absolute",
+                        }}
+                      />
+                      <CircularProgress
+                        variant="determinate"
+                        value={100}
+                        size={40}
+                        thickness={4}
+                        sx={{
+                          color: "var(--md-sys-color-surface-variant)",
+                          opacity: 0.2,
+                        }}
+                      />
+                      <Box
+                        sx={{
+                          top: 0,
+                          left: 0,
+                          bottom: 0,
+                          right: 0,
+                          position: "absolute",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
                         }}
                       >
-                        {Math.round(score)}%
-                      </Typography>
-                    </Box>
-                  </ScoreCircle>
-
-                  <Typography
-                    sx={{
-                      fontSize: "0.7rem",
-                      mt: 1,
-                      color: "var(--md-sys-color-on-surface-variant)",
-                    }}
-                  >
-                    {new Date(submission.date_added).toLocaleDateString()}
-                  </Typography>
-                  <Typography
-                    sx={{
-                      fontSize: "0.7rem",
-                      color: "var(--md-sys-color-on-surface-variant)",
-                    }}
-                  >
-                    by: {submission.username}
-                  </Typography>
-                </CardContent>
+                        <Typography
+                          sx={{
+                            fontSize: "0.6rem",
+                            fontFamily: '"Press Start 2P"',
+                          }}
+                        >
+                          {Math.round(score)}%
+                        </Typography>
+                      </Box>
+                    </ScoreCircle>
+                  </ScoreContainer>
+                </CardContentStyled>
               </StyledCard>
             );
           })}

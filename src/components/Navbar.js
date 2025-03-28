@@ -15,6 +15,7 @@ const StyledAppBar = styled(AppBar)({
 const StyledButton = styled(Button)({
   color: "var(--md-sys-color-on-surface)",
   marginLeft: "1rem",
+  fontFamily: "Roboto, sans-serif",
 });
 
 const Navbar = () => {
