@@ -8,7 +8,8 @@ const StyledPaper = styled(Paper)(({ theme }) => ({
   backgroundColor: "var(--md-sys-color-surface-container)",
   padding: theme.spacing(1.5),
   marginBottom: theme.spacing(2),
-  width: "480px",
+  width: "100%",
+  maxWidth: "480px",
   display: "flex",
   flexDirection: "column",
   alignItems: "center",
@@ -50,8 +51,9 @@ const VideoContainer = styled(Box)({
   justifyContent: "center",
   gap: "0.5rem",
   flexWrap: "wrap",
-  margin: "0 1rem",
-  width: "fit-content",
+  margin: "0 auto",
+  width: "100%",
+  maxWidth: "1500px",
 });
 
 const ScoreCircle = styled(Box)({
@@ -60,13 +62,37 @@ const ScoreCircle = styled(Box)({
   marginTop: "1rem",
 });
 
-const SubmissionInfo = styled(Typography)({
+const SubmissionText = styled(Typography)(({ theme }) => ({
   fontFamily: "Roboto, sans-serif",
   color: "var(--md-sys-color-on-surface-variant)",
   fontSize: "0.9rem",
   textAlign: "center",
-  marginTop: "2rem",
+  lineHeight: 1.6,
+  display: "flex",
+  alignItems: "center",
+  gap: theme.spacing(1),
+}));
+
+const Username = styled("span")({
+  color: "var(--md-sys-color-on-surface)",
+  fontWeight: 500,
+  fontFamily: '"Press Start 2P"',
+  fontSize: "0.7rem",
+  transform: "translateY(2px)",
+  display: "inline-block",
 });
+
+const SubmissionInfo = styled(Paper)(({ theme }) => ({
+  backgroundColor: "var(--md-sys-color-surface-container)",
+  padding: theme.spacing(3),
+  marginTop: "2rem",
+  width: "100%",
+  maxWidth: "480px",
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  gap: theme.spacing(1.5),
+}));
 
 const getScoreColor = (score) => {
   if (score < 33) return "rgb(147, 0, 10)";
@@ -77,7 +103,7 @@ const getScoreColor = (score) => {
 const VideoGrid = ({ video1, video2, averageScore, username, dateCreated }) => {
   const getPlayerOptions = (video) => ({
     height: "270",
-    width: "480",
+    width: "100%",
     playerVars: {
       start: video.start,
       end: video.end,
@@ -162,9 +188,13 @@ const VideoGrid = ({ video1, video2, averageScore, username, dateCreated }) => {
           <YouTube videoId={video2.id} opts={getPlayerOptions(video2)} />
         </StyledPaper>
       </VideoContainer>
-
-      <SubmissionInfo>
-        suggested by {username} on {formatDate(dateCreated)}
+      <SubmissionInfo elevation={3}>
+        <SubmissionText>
+          suggested by <Username>{username}</Username>
+        </SubmissionText>
+        <SubmissionText>
+          on <Username>{formatDate(dateCreated)}</Username>
+        </SubmissionText>
       </SubmissionInfo>
     </Box>
   );

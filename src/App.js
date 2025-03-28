@@ -1,3 +1,4 @@
+import { useLocation, useNavigate } from "react-router-dom";
 import React, { useState, useEffect } from "react";
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import { ThemeProvider, createTheme, CssBaseline, Box } from "@mui/material";
@@ -49,47 +50,134 @@ const darkTheme = createTheme({
   },
 });
 
-function App() {
+function AppContent() {
   const [videoPairs, setVideoPairs] = useState([]);
   const [currentPairIndex, setCurrentPairIndex] = useState(0);
   const [feedback, setFeedback] = useState([]);
   const [sessionId] = useState(() =>
     Math.random().toString(36).substring(2, 15)
   );
+  const location = useLocation();
+  const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sortBy, setSortBy] = useState("date");
+
+  const getSortedVideoPairs = (pairs) => {
+    return [...pairs].sort((a, b) => {
+      if (sortBy === "date") {
+        return new Date(b.date_added) - new Date(a.date_added);
+      }
+      const scoreA =
+        (a.similarVotes / (a.similarVotes + a.notSimilarVotes)) * 100 || 0;
+      const scoreB =
+        (b.similarVotes / (b.similarVotes + b.notSimilarVotes)) * 100 || 0;
+      return scoreB - scoreA;
+    });
+  };
 
   useEffect(() => {
-    fetch("http://localhost:5000/api/videos")
-      .then((response) => response.json())
-      .then((data) => {
-        const transformedData = data.map((pair) => ({
-          id: pair.id,
-          username: pair.username,
-          video1: {
-            id: pair.video1_id,
-            start: pair.video1_start,
-            end: pair.video1_end,
-            songName: pair.video1SongName,
-            artistName: pair.video1ArtistName,
-          },
-          video2: {
-            id: pair.video2_id,
-            start: pair.video2_start,
-            end: pair.video2_end,
-            songName: pair.video2SongName,
-            artistName: pair.video2ArtistName,
-          },
-          date_added: pair.date_added,
-          similarVotes: pair.similar_votes || 0,
-          notSimilarVotes: pair.not_similar_votes || 0,
-        }));
-        setVideoPairs(transformedData);
-        setFeedback(transformedData.map(() => null));
-      })
-      .catch((error) => {
-        console.error("There was a problem with the fetch operation:", error);
-      });
-  }, []);
+    const urlParams = new URLSearchParams(location.search);
+    const idParam = urlParams.get("id");
+
+    if (idParam && videoPairs.length > 0) {
+      const index = videoPairs.findIndex(
+        (pair) => pair.id === parseInt(idParam)
+      );
+      if (index !== -1) {
+        setCurrentPairIndex(index);
+      }
+    }
+  }, [location.search, videoPairs]);
+
+  // Modify the data fetching useEffect
+  useEffect(() => {
+    const fetchData = () => {
+      fetch("/maybe-similar/api/videos")
+        .then((response) => response.json())
+        .then((data) => {
+          const transformedData = data.map((pair) => ({
+            id: pair.id,
+            username: pair.username,
+            video1: {
+              id: pair.video1_id,
+              start: pair.video1_start,
+              end: pair.video1_end,
+              songName: pair.video1SongName,
+              artistName: pair.video1ArtistName,
+            },
+            video2: {
+              id: pair.video2_id,
+              start: pair.video2_start,
+              end: pair.video2_end,
+              songName: pair.video2SongName,
+              artistName: pair.video2ArtistName,
+            },
+            date_added: pair.date_added,
+            similarVotes: pair.similar_votes || 0,
+            notSimilarVotes: pair.not_similar_votes || 0,
+          }));
+
+          // Sort the data before setting state
+          const sortedData = getSortedVideoPairs(transformedData);
+          setVideoPairs(sortedData);
+          setFeedback(sortedData.map(() => null));
+
+          // Handle URL parameters
+          const urlParams = new URLSearchParams(location.search);
+          const idParam = urlParams.get("id");
+
+          if (idParam) {
+            const index = sortedData.findIndex(
+              (pair) => pair.id === parseInt(idParam)
+            );
+            if (index !== -1) {
+              setCurrentPairIndex(index);
+            }
+          } else {
+            // If no ID parameter, show the first item from sorted data
+            setCurrentPairIndex(0);
+          }
+        })
+        .catch((error) => {
+          console.error("There was a problem with the fetch operation:", error);
+        });
+    };
+
+    fetchData();
+    const interval = setInterval(fetchData, 30000);
+    return () => clearInterval(interval);
+  }, [sortBy]); // Add sortBy as dependency
+
+  // Modify the navigation handlers
+  const handleNext = () => {
+    const sortedPairs = getSortedVideoPairs(videoPairs);
+    const currentId = videoPairs[currentPairIndex].id;
+    const currentSortedIndex = sortedPairs.findIndex(
+      (pair) => pair.id === currentId
+    );
+
+    if (currentSortedIndex < sortedPairs.length - 1) {
+      const nextPair = sortedPairs[currentSortedIndex + 1];
+      const nextIndex = videoPairs.findIndex((pair) => pair.id === nextPair.id);
+      setCurrentPairIndex(nextIndex);
+      navigate(`/?id=${nextPair.id}`);
+    }
+  };
+
+  const handlePrevious = () => {
+    const sortedPairs = getSortedVideoPairs(videoPairs);
+    const currentId = videoPairs[currentPairIndex].id;
+    const currentSortedIndex = sortedPairs.findIndex(
+      (pair) => pair.id === currentId
+    );
+
+    if (currentSortedIndex > 0) {
+      const prevPair = sortedPairs[currentSortedIndex - 1];
+      const prevIndex = videoPairs.findIndex((pair) => pair.id === prevPair.id);
+      setCurrentPairIndex(prevIndex);
+      navigate(`/?id=${prevPair.id}`);
+    }
+  };
 
   const handleFeedback = (isSimilar) => {
     const updatedFeedback = [...feedback];
@@ -123,7 +211,7 @@ function App() {
 
     setVideoPairs(updatedVideoPairs);
 
-    fetch("http://localhost:5000/api/feedback", {
+    fetch("/maybe-similar/api/feedback", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -148,20 +236,6 @@ function App() {
       });
   };
 
-  const handleNext = () => {
-    if (currentPairIndex < videoPairs.length - 1) {
-      setCurrentPairIndex(currentPairIndex + 1);
-    } else {
-      alert("You have gone through all the suggestions.");
-    }
-  };
-
-  const handlePrevious = () => {
-    if (currentPairIndex > 0) {
-      setCurrentPairIndex(currentPairIndex - 1);
-    }
-  };
-
   const currentPair = videoPairs[currentPairIndex] || null;
   const totalVotes = currentPair
     ? currentPair.similarVotes + currentPair.notSimilarVotes
@@ -171,76 +245,97 @@ function App() {
     : 0;
 
   return (
+    <Box
+      sx={{
+        display: "flex",
+        flexDirection: "column",
+        minHeight: "100vh",
+        bgcolor: "var(--md-sys-color-background)",
+      }}
+    >
+      <Navbar />
+      <Box sx={{ display: "flex", flex: 1, position: "relative" }}>
+        <Main open={sidebarOpen}>
+          <IconButton
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            sx={{
+              position: "fixed",
+              right: sidebarOpen ? drawerWidth + 16 : 16,
+              top: 80,
+              color: "var(--md-sys-color-on-surface)",
+              backgroundColor: "var(--md-sys-color-surface-container)",
+              "&:hover": {
+                backgroundColor: "var(--md-sys-color-surface-container-high)",
+              },
+              zIndex: 1,
+            }}
+          >
+            <Menu />
+          </IconButton>
+          <Routes>
+            <Route
+              path="/add-suggestion"
+              element={
+                <SuggestionForm
+                  refreshData={() => {
+                    fetch("/maybe-similar/api/videos")
+                      .then((response) => response.json())
+                      .then((data) => {
+                        setVideoPairs(data);
+                        setFeedback(data.map(() => null));
+                      });
+                  }}
+                />
+              }
+            />
+            <Route
+              path="/"
+              element={
+                currentPair && currentPair.video1 && currentPair.video2 ? (
+                  <Box>
+                    <VideoGrid
+                      video1={currentPair.video1}
+                      video2={currentPair.video2}
+                      averageScore={averageScore}
+                      username={currentPair.username}
+                      dateCreated={currentPair.date_added}
+                    />
+                    <FeedbackButtons
+                      onFeedback={handleFeedback}
+                      onNext={handleNext}
+                      onPrevious={handlePrevious}
+                      currentFeedback={feedback[currentPairIndex]}
+                      similarVotes={currentPair.similarVotes}
+                      notSimilarVotes={currentPair.notSimilarVotes}
+                    />
+                  </Box>
+                ) : (
+                  <Box sx={{ color: "var(--md-sys-color-on-surface)" }}>
+                    Currently no videos to display.
+                  </Box>
+                )
+              }
+            />
+          </Routes>
+        </Main>
+        <Sidebar
+          open={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
+          submissions={videoPairs}
+          sortBy={sortBy}
+          onSortChange={(newSortBy) => setSortBy(newSortBy)}
+        />
+      </Box>
+    </Box>
+  );
+}
+
+function App() {
+  return (
     <ThemeProvider theme={darkTheme}>
       <CssBaseline />
-      <Router>
-        <Box
-          sx={{
-            display: "flex",
-            flexDirection: "column",
-            minHeight: "100vh",
-            bgcolor: "var(--md-sys-color-background)",
-          }}
-        >
-          <Navbar />
-          <Box sx={{ display: "flex", flex: 1, position: "relative" }}>
-            <Main open={sidebarOpen}>
-              <IconButton
-                onClick={() => setSidebarOpen(!sidebarOpen)}
-                sx={{
-                  position: "fixed",
-                  right: sidebarOpen ? drawerWidth + 16 : 16,
-                  top: 80,
-                  color: "var(--md-sys-color-on-surface)",
-                  backgroundColor: "var(--md-sys-color-surface-container)",
-                  "&:hover": {
-                    backgroundColor:
-                      "var(--md-sys-color-surface-container-high)",
-                  },
-                  zIndex: 1,
-                }}
-              >
-                <Menu />
-              </IconButton>
-              <Routes>
-                <Route path="/add-suggestion" element={<SuggestionForm />} />
-                <Route
-                  path="/"
-                  element={
-                    currentPair && currentPair.video1 && currentPair.video2 ? (
-                      <Box>
-                        <VideoGrid
-                          video1={currentPair.video1}
-                          video2={currentPair.video2}
-                          averageScore={averageScore}
-                          username={currentPair.username}
-                          dateCreated={currentPair.date_added}
-                        />
-                        <FeedbackButtons
-                          onFeedback={handleFeedback}
-                          onNext={handleNext}
-                          onPrevious={handlePrevious}
-                          currentFeedback={feedback[currentPairIndex]}
-                          similarVotes={currentPair.similarVotes}
-                          notSimilarVotes={currentPair.notSimilarVotes}
-                        />
-                      </Box>
-                    ) : (
-                      <Box sx={{ color: "var(--md-sys-color-on-surface)" }}>
-                        Currently no videos to display.
-                      </Box>
-                    )
-                  }
-                />
-              </Routes>
-            </Main>
-            <Sidebar
-              open={sidebarOpen}
-              onClose={() => setSidebarOpen(false)}
-              submissions={videoPairs}
-            />
-          </Box>
-        </Box>
+      <Router basename="/maybe-similar">
+        <AppContent />
       </Router>
     </ThemeProvider>
   );

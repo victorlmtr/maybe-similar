@@ -14,7 +14,7 @@ import {
   InputAdornment,
   CircularProgress,
 } from "@mui/material";
-import { ChevronRight, ChevronLeft, Search } from "@mui/icons-material";
+import { ChevronRight, Search } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 import { styled } from "@mui/material/styles";
 
@@ -83,10 +83,12 @@ const getScoreColor = (score) => {
   return "rgb(46, 106, 68)";
 };
 
-const Sidebar = ({ open, onClose, submissions }) => {
+const Sidebar = ({ open, onClose, submissions, sortBy, onSortChange }) => {
   const navigate = useNavigate();
-  const [sortBy, setSortBy] = useState("date");
   const [searchTerm, setSearchTerm] = useState("");
+  const handleSortChange = (event) => {
+    onSortChange(event.target.value);
+  };
 
   const sortSubmissions = (items) => {
     return [...items].sort((a, b) => {
@@ -110,8 +112,8 @@ const Sidebar = ({ open, onClose, submissions }) => {
     );
   };
 
-  const handleCardClick = (index) => {
-    navigate(`/?id=${submissions[index].id}`);
+  const handleCardClick = (submission) => {
+    navigate(`/?id=${submission.id}`);
     onClose();
   };
 
@@ -149,11 +151,7 @@ const Sidebar = ({ open, onClose, submissions }) => {
       <Box sx={{ p: 2 }}>
         <FormControl fullWidth variant="outlined" sx={{ mb: 2 }}>
           <InputLabel>Sort by</InputLabel>
-          <Select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-            label="Sort by"
-          >
+          <Select value={sortBy} onChange={handleSortChange} label="Sort by">
             <MenuItem value="date">Date submitted</MenuItem>
             <MenuItem value="score">Highest score</MenuItem>
           </Select>
@@ -176,7 +174,7 @@ const Sidebar = ({ open, onClose, submissions }) => {
         />
 
         <Box sx={{ overflowY: "auto", height: "calc(100vh - 200px)" }}>
-          {processedSubmissions.map((submission, index) => {
+          {processedSubmissions.map((submission) => {
             const score =
               submission.similarVotes + submission.notSimilarVotes > 0
                 ? (submission.similarVotes /
@@ -196,7 +194,7 @@ const Sidebar = ({ open, onClose, submissions }) => {
             return (
               <StyledCard
                 key={submission.id}
-                onClick={() => handleCardClick(index)}
+                onClick={() => handleCardClick(submission)}
               >
                 <CardContentStyled>
                   <Box sx={{ textAlign: "center", mb: 2 }}>
@@ -214,7 +212,8 @@ const Sidebar = ({ open, onClose, submissions }) => {
                       textAlign: "center",
                     }}
                   >
-                    suggested by {submission.username} on{" "}
+                    by {submission.username}
+                    <br />
                     {formatDate(submission.date_added)}
                   </Typography>
 

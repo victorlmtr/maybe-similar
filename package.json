@@ -2,6 +2,7 @@
   "short_name": "MaybeSimilar",
   "name": "Maybe Similar - Think two songs sound similar?",
   "version": "0.1.0",
+  "homepage": "/maybe-similar",
   "private": true,
   "dependencies": {
     "@emotion/react": "^11.14.0",

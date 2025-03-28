@@ -11,9 +11,17 @@ import {
   ListItemButton,
   ListItemText,
   InputAdornment,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  CircularProgress,
+  Alert,
+  Snackbar,
 } from "@mui/material";
-import { Search } from "@mui/icons-material";
+import { Search, CheckCircleOutline } from "@mui/icons-material";
 import { styled } from "@mui/material/styles";
+import { useNavigate } from "react-router-dom";
 
 const StyledPaper = styled(Paper)(({ theme }) => ({
   backgroundColor: "var(--md-sys-color-surface-container)",
@@ -45,7 +53,17 @@ const ButtonContainer = styled(Box)({
   justifyContent: "center",
 });
 
-const SuggestionForm = () => {
+const SuccessDialog = styled(Dialog)(({ theme }) => ({
+  "& .MuiDialog-paper": {
+    backgroundColor: "var(--md-sys-color-surface-container)",
+    padding: theme.spacing(2),
+    maxWidth: "400px",
+    textAlign: "center",
+  },
+}));
+
+const SuggestionForm = ({ refreshData }) => {
+  const navigate = useNavigate();
   const [username, setUsername] = useState("");
   const [video1, setVideo1] = useState({ id: "", start: 0, end: 15 });
   const [video2, setVideo2] = useState({ id: "", start: 0, end: 15 });
@@ -53,7 +71,22 @@ const SuggestionForm = () => {
   const [player, setPlayer] = useState(null);
   const [searchResults, setSearchResults] = useState([]);
 
+  // New states for handling loading and errors
+  const [isSearching, setIsSearching] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState(null);
+  const [successDialogOpen, setSuccessDialogOpen] = useState(false);
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState("");
+  const [snackbarSeverity, setSnackbarSeverity] = useState("error");
+
   const YOUTUBE_API_KEY = process.env.REACT_APP_YOUTUBE_API_KEY;
+
+  const showSnackbar = (message, severity = "error") => {
+    setSnackbarMessage(message);
+    setSnackbarSeverity(severity);
+    setSnackbarOpen(true);
+  };
 
   // Function to extract video ID and start time from the YouTube URL
   const extractVideoDetails = (url) => {
@@ -65,18 +98,44 @@ const SuggestionForm = () => {
 
   const handleSearchSubmit = async (e) => {
     e.preventDefault();
-    if (videoSearch.includes("youtube.com")) {
-      const { videoId, startTime } = extractVideoDetails(videoSearch);
-      if (videoId) {
-        player.loadVideoById({ videoId, startSeconds: startTime });
+    setIsSearching(true);
+    setError(null);
+    setSearchResults([]);
+
+    try {
+      if (videoSearch.includes("youtube.com")) {
+        const { videoId, startTime } = extractVideoDetails(videoSearch);
+        if (videoId) {
+          player.loadVideoById({ videoId, startSeconds: startTime });
+        } else {
+          throw new Error("Invalid YouTube URL");
+        }
+      } else {
+        const response = await fetch(
+          `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${videoSearch}&type=video&key=${YOUTUBE_API_KEY}`
+        );
+        if (!response.ok) {
+          throw new Error("Failed to fetch search results");
+        }
+        const data = await response.json();
+        setSearchResults(data.items);
       }
-    } else {
-      // Fetch search results from YouTube Data API
-      const response = await fetch(
-        `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${videoSearch}&type=video&key=${YOUTUBE_API_KEY}`
-      );
-      const data = await response.json();
-      setSearchResults(data.items);
+    } catch (error) {
+      showSnackbar(error.message);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const validateVideos = () => {
+    if (!video1.id || !video2.id) {
+      throw new Error("Please select both videos");
+    }
+    if (video1.id === video2.id) {
+      throw new Error("Please select two different videos");
+    }
+    if (!username.trim()) {
+      throw new Error("Please enter a username");
     }
   };
 
@@ -100,33 +159,49 @@ const SuggestionForm = () => {
       : setVideo2(updatedVideoDetails);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setIsSubmitting(true);
+    setError(null);
 
-    fetch("http://localhost:5000/api/suggestions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ username, video1, video2 }),
-    })
-      .then((response) => {
-        if (!response.ok) {
-          return response.text().then((text) => {
-            throw new Error(text);
-          });
-        }
-        return response.json();
-      })
-      .then((data) => {
-        alert("Suggestion submitted");
-        setUsername("");
-        setVideo1({ id: "", start: 0, end: 15 });
-        setVideo2({ id: "", start: 0, end: 15 });
-      })
-      .catch((error) => {
-        console.error("There was a problem with the fetch operation:", error);
+    try {
+      validateVideos();
+
+      const response = await fetch("/maybe-similar/api/suggestions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ username, video1, video2 }),
       });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || "Failed to submit suggestion");
+      }
+
+      await response.json();
+      setSuccessDialogOpen(true);
+      if (refreshData) {
+        refreshData();
+      }
+    } catch (error) {
+      showSnackbar(error.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleSuccessDialogClose = () => {
+    setSuccessDialogOpen(false);
+    // Reset form
+    setUsername("");
+    setVideo1({ id: "", start: 0, end: 15 });
+    setVideo2({ id: "", start: 0, end: 15 });
+    setVideoSearch("");
+    setSearchResults([]);
+    // Navigate to home page
+    navigate("/");
   };
 
   return (
@@ -158,6 +233,7 @@ const SuggestionForm = () => {
             type="submit"
             variant="contained"
             fullWidth
+            disabled={isSearching}
             sx={{
               backgroundColor: "var(--md-sys-color-primary)",
               "&:hover": {
@@ -165,7 +241,7 @@ const SuggestionForm = () => {
               },
             }}
           >
-            Search
+            {isSearching ? <CircularProgress size={24} /> : "Search"}
           </Button>
         </Box>
 
@@ -308,6 +384,7 @@ const SuggestionForm = () => {
             type="submit"
             variant="contained"
             fullWidth
+            disabled={isSubmitting}
             sx={{
               backgroundColor: "var(--md-sys-color-primary)",
               "&:hover": {
@@ -315,10 +392,61 @@ const SuggestionForm = () => {
               },
             }}
           >
-            Submit Suggestion
+            {isSubmitting ? (
+              <CircularProgress size={24} />
+            ) : (
+              "Submit Suggestion"
+            )}
           </Button>
         </Box>
       </StyledPaper>
+      {/* Success Dialog */}
+      <SuccessDialog
+        open={successDialogOpen}
+        onClose={handleSuccessDialogClose}
+        aria-labelledby="success-dialog-title"
+      >
+        <DialogTitle id="success-dialog-title">
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 1,
+              justifyContent: "center",
+            }}
+          >
+            <CheckCircleOutline sx={{ color: "var(--md-sys-color-primary)" }} />
+            Success!
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          <Typography>
+            Your suggestion has been submitted successfully! You will be
+            redirected to the home page.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleSuccessDialogClose} autoFocus>
+            OK
+          </Button>
+        </DialogActions>
+      </SuccessDialog>
+
+      {/* Error/Success Snackbar */}
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={6000}
+        onClose={() => setSnackbarOpen(false)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert
+          onClose={() => setSnackbarOpen(false)}
+          severity={snackbarSeverity}
+          sx={{ width: "100%" }}
+        >
+          {snackbarMessage}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };
