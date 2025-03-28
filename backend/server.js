@@ -22,30 +22,99 @@ const pool = new Pool({
   port: process.env.DB_PORT,
 });
 
-// Routes
+// Function to get video details from database or YouTube API
+async function getOrFetchVideoDetails(videoId) {
+  try {
+    // Try to get from database first
+    const dbResult = await pool.query(
+      "SELECT * FROM video_details WHERE video_id = $1",
+      [videoId]
+    );
+
+    if (dbResult.rows.length > 0) {
+      const videoDetails = dbResult.rows[0];
+      // Check if details are older than 7 days
+      const oneWeekAgo = new Date();
+      oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+
+      if (new Date(videoDetails.last_updated) > oneWeekAgo) {
+        return {
+          songName: videoDetails.title,
+          artistName: videoDetails.channel_title,
+        };
+      }
+    }
+
+    // If not in database or outdated, fetch from YouTube API
+    const details = await getVideoDetails(videoId);
+
+    // Store or update in database
+    await pool.query(
+      `INSERT INTO video_details (video_id, title, channel_title, last_updated)
+       VALUES ($1, $2, $3, CURRENT_TIMESTAMP)
+       ON CONFLICT (video_id) 
+       DO UPDATE SET 
+         title = EXCLUDED.title,
+         channel_title = EXCLUDED.channel_title,
+         last_updated = CURRENT_TIMESTAMP`,
+      [videoId, details.songName, details.artistName]
+    );
+
+    return details;
+  } catch (error) {
+    console.error(`Error getting video details for ${videoId}:`, error);
+    return { songName: "Video Unavailable", artistName: "" };
+  }
+}
+app.get("/api/test-video/:videoId", async (req, res) => {
+  try {
+    const { videoId } = req.params;
+    console.log(`Testing video ID: ${videoId}`);
+
+    const details = await getVideoDetails(videoId);
+    console.log("YouTube API response:", details);
+
+    res.json(details);
+  } catch (err) {
+    console.error("Test endpoint error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.get("/api/videos", async (req, res) => {
   try {
-    const result = await pool.query("SELECT * FROM video_pairs");
+    // Only fetch the core video pair data without YouTube details
+    const result = await pool.query(`
+      SELECT 
+        id,
+        username,
+        video1_id,
+        video1_start,
+        video1_end,
+        video2_id,
+        video2_start,
+        video2_end,
+        date_added,
+        similar_votes,
+        not_similar_votes
+      FROM video_pairs
+    `);
+
     const videoPairs = result.rows;
 
     const videoDetailsPromises = videoPairs.map(async (pair) => {
-      try {
-        const video1Details = await getVideoDetails(pair.video1_id);
-        const video2Details = await getVideoDetails(pair.video2_id);
-        return {
-          ...pair,
-          video1SongName: video1Details.songName,
-          video1ArtistName: video1Details.artistName,
-          video2SongName: video2Details.songName,
-          video2ArtistName: video2Details.artistName,
-        };
-      } catch (error) {
-        console.error(
-          `Error fetching video details for pair ID ${pair.id}:`,
-          error
-        );
-        return pair;
-      }
+      const [video1Details, video2Details] = await Promise.all([
+        getOrFetchVideoDetails(pair.video1_id),
+        getOrFetchVideoDetails(pair.video2_id),
+      ]);
+
+      return {
+        ...pair,
+        video1SongName: video1Details.songName,
+        video1ArtistName: video1Details.artistName,
+        video2SongName: video2Details.songName,
+        video2ArtistName: video2Details.artistName,
+      };
     });
 
     const videoPairsWithDetails = await Promise.all(videoDetailsPromises);
@@ -119,19 +188,39 @@ app.post("/api/feedback", async (req, res) => {
 app.post("/api/suggestions", async (req, res) => {
   const { username, video1, video2 } = req.body;
   try {
-    await pool.query(
-      "INSERT INTO video_pairs (username, video1_id, video1_start, video1_end, video2_id, video2_start, video2_end, date_added) VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP)",
-      [
-        username,
-        video1.id,
-        video1.start,
-        video1.end,
-        video2.id,
-        video2.start,
-        video2.end,
-      ]
-    );
-    res.status(201).json({ message: "Suggestion submitted" });
+    // Start a transaction
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
+
+      // Insert video pair
+      await client.query(
+        "INSERT INTO video_pairs (username, video1_id, video1_start, video1_end, video2_id, video2_start, video2_end, date_added) VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP)",
+        [
+          username,
+          video1.id,
+          video1.start,
+          video1.end,
+          video2.id,
+          video2.start,
+          video2.end,
+        ]
+      );
+
+      // Fetch and store video details for both videos
+      await Promise.all([
+        getOrFetchVideoDetails(video1.id),
+        getOrFetchVideoDetails(video2.id),
+      ]);
+
+      await client.query("COMMIT");
+      res.status(201).json({ message: "Suggestion submitted" });
+    } catch (err) {
+      await client.query("ROLLBACK");
+      throw err;
+    } finally {
+      client.release();
+    }
   } catch (err) {
     console.error(err.message);
     res.status(500).json({ error: "Server error" });
