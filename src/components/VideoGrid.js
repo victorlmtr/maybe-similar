@@ -3,24 +3,29 @@ import YouTube from "react-youtube";
 import { Box, Typography, Paper, CircularProgress } from "@mui/material";
 import { styled } from "@mui/material/styles";
 
-//Single Video container
 const StyledPaper = styled(Paper)(({ theme }) => ({
   backgroundColor: "var(--md-sys-color-surface-container)",
   padding: theme.spacing(1.5),
   marginBottom: theme.spacing(2),
   width: "100%",
   maxWidth: "480px",
+  minWidth: "300px",
   display: "flex",
   flexDirection: "column",
   alignItems: "center",
   overflow: "hidden",
-  minWidth: "300px",
+  // Add styles to make the video player blend better
+  "& iframe": {
+    borderRadius: theme.shape.borderRadius,
+    backgroundColor: "transparent",
+    marginTop: theme.spacing(1),
+  },
 }));
 
 const VideoTitle = styled(Typography)(({ theme }) => ({
   fontFamily: '"Press Start 2P"',
   color: "var(--md-sys-color-on-surface)",
-  marginBottom: "1rem",
+  marginBottom: "0.5rem",
   fontSize: "0.8rem",
   width: "100%",
   textAlign: "center",
@@ -38,10 +43,10 @@ const VsBox = styled(Box)(({ theme }) => ({
   display: "flex",
   flexDirection: "column",
   alignItems: "center",
-  justifyContent: "flex-start",
-  minWidth: "100px",
+  justifyContent: "center",
   padding: theme.spacing(2),
-  marginTop: "4rem",
+  minWidth: "120px",
+  alignSelf: "center", // Center VS box vertically
 }));
 
 const VsText = styled(Typography)({
@@ -54,13 +59,17 @@ const VsText = styled(Typography)({
 
 const VideoContainer = styled(Box)(({ theme }) => ({
   display: "flex",
-  alignItems: "flex-start",
+  alignItems: "center", // Center items vertically
   justifyContent: "center",
   gap: theme.spacing(2),
-  flexWrap: "wrap",
   margin: "0 auto",
   width: "100%",
+  maxWidth: "1200px", // Limit maximum width
   padding: theme.spacing(2),
+  [theme.breakpoints.down("md")]: {
+    flexDirection: "column", // Stack vertically on smaller screens
+    gap: theme.spacing(3),
+  },
 }));
 
 const ScoreCircle = styled(Box)({
@@ -68,6 +77,18 @@ const ScoreCircle = styled(Box)({
   display: "inline-flex",
   marginTop: "1rem",
 });
+
+const SubmissionInfo = styled(Paper)(({ theme }) => ({
+  backgroundColor: "var(--md-sys-color-surface-container)",
+  padding: theme.spacing(3),
+  marginTop: theme.spacing(3),
+  width: "100%",
+  maxWidth: "480px",
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  gap: theme.spacing(1.5),
+}));
 
 const SubmissionText = styled(Typography)(({ theme }) => ({
   fontFamily: "Roboto, sans-serif",
@@ -89,32 +110,17 @@ const Username = styled("span")({
   display: "inline-block",
 });
 
-const SubmissionInfo = styled(Paper)(({ theme }) => ({
-  backgroundColor: "var(--md-sys-color-surface-container)",
-  padding: theme.spacing(3),
-  marginTop: "2rem",
-  width: "100%",
-  maxWidth: "480px",
-  display: "flex",
-  flexDirection: "column",
-  alignItems: "center",
-  gap: theme.spacing(1.5),
-}));
-
-const getScoreColor = (score) => {
-  if (score < 33) return "rgb(147, 0, 10)";
-  if (score < 66) return "rgb(255, 176, 0)";
-  return "rgb(46, 106, 68)";
-};
-
 const VideoGrid = ({ video1, video2, averageScore, username, dateCreated }) => {
   const getPlayerOptions = (video) => ({
     height: "270",
-    width: "100%",
+    width: "480", // Set fixed width for consistency
     playerVars: {
       start: video.start,
       end: video.end,
       autoplay: 0,
+      modestbranding: 1, // Remove YouTube logo
+      showinfo: 0, // Hide video title and uploader
+      rel: 0, // Hide related videos
     },
   });
 
@@ -134,8 +140,6 @@ const VideoGrid = ({ video1, video2, averageScore, username, dateCreated }) => {
         flexDirection: "column",
         alignItems: "center",
         width: "100%",
-        paddingTop: "2rem",
-        //maxWidth: "1400px",
         margin: "0 auto",
       }}
     >
@@ -198,6 +202,7 @@ const VideoGrid = ({ video1, video2, averageScore, username, dateCreated }) => {
           <YouTube videoId={video2.id} opts={getPlayerOptions(video2)} />
         </StyledPaper>
       </VideoContainer>
+
       <SubmissionInfo elevation={3}>
         <SubmissionText>
           suggested by <Username>{username}</Username>
@@ -208,6 +213,12 @@ const VideoGrid = ({ video1, video2, averageScore, username, dateCreated }) => {
       </SubmissionInfo>
     </Box>
   );
+};
+
+const getScoreColor = (score) => {
+  if (score < 33) return "rgb(147, 0, 10)";
+  if (score < 66) return "rgb(255, 176, 0)";
+  return "rgb(46, 106, 68)";
 };
 
 export default VideoGrid;

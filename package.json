@@ -8,7 +8,7 @@
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
     "@fontsource/press-start-2p": "^5.2.5",
-    "@mui/icons-material": "^6.4.8",
+    "@mui/icons-material": "^6.4.9",
     "@mui/material": "^6.4.8",
     "@testing-library/jest-dom": "^5.17.0",
     "@testing-library/react": "^13.4.0",

@@ -22,8 +22,48 @@ const pool = new Pool({
   port: process.env.DB_PORT,
 });
 
+async function initializeVideoDetails() {
+  try {
+    console.log("Initializing video details...");
+    // Get all unique video IDs from the database
+    const result = await pool.query(`
+      SELECT DISTINCT video1_id, video2_id 
+      FROM video_pairs
+    `);
+
+    // Create an array of unique video IDs
+    const videoIds = new Set();
+    result.rows.forEach((row) => {
+      videoIds.add(row.video1_id);
+      videoIds.add(row.video2_id);
+    });
+
+    console.log(`Found ${videoIds.size} unique videos to initialize`);
+
+    // Fetch details for all videos
+    const fetchPromises = Array.from(videoIds).map((videoId) =>
+      getOrFetchVideoDetails(videoId)
+    );
+
+    await Promise.all(fetchPromises);
+    console.log("Video details initialization complete");
+  } catch (error) {
+    console.error("Error during video details initialization:", error);
+  }
+}
+
+app.post("/api/admin/refresh-video-details", async (req, res) => {
+  try {
+    await initializeVideoDetails();
+    res.json({ message: "Video details refreshed successfully" });
+  } catch (error) {
+    console.error("Error refreshing video details:", error);
+    res.status(500).json({ error: "Failed to refresh video details" });
+  }
+});
+
 // Function to get video details from database or YouTube API
-async function getOrFetchVideoDetails(videoId) {
+async function getOrFetchVideoDetails(videoId, retryCount = 3) {
   try {
     // Try to get from database first
     const dbResult = await pool.query(
@@ -228,6 +268,7 @@ app.post("/api/suggestions", async (req, res) => {
 });
 
 // Start server
-app.listen(port, () => {
+app.listen(port, async () => {
   console.log(`Server running on port ${port}`);
+  await initializeVideoDetails();
 });

@@ -21,36 +21,16 @@ import { Menu } from "@mui/icons-material";
 
 const drawerWidth = 340;
 
-const Main = styled("main", { shouldForwardProp: (prop) => prop !== "open" })(
-  ({ theme, open }) => ({
-    flexGrow: 1,
-    padding: theme.spacing(2),
-    paddingRight: theme.spacing(1),
-    transition: theme.transitions.create("margin", {
-      easing: theme.transitions.easing.sharp,
-      duration: theme.transitions.duration.leavingScreen,
-    }),
-    marginRight: 0,
-    ...(open && {
-      transition: theme.transitions.create("margin", {
-        easing: theme.transitions.easing.easeOut,
-        duration: theme.transitions.duration.enteringScreen,
-      }),
-      marginRight: drawerWidth,
-    }),
-    width: "100%",
-    paddingTop: "96px",
-    minHeight: "100vh",
-    position: "relative",
-    overflow: "hidden",
-    display: "flex",
-    justifyContent: "center",
-    "& > *": {
-      width: "100%",
-      maxWidth: "100%",
-    },
-  })
-);
+const Main = styled("main")(({ theme, sidebarOnBottom }) => ({
+  flexGrow: 1,
+  padding: theme.spacing(2),
+  paddingTop: "96px",
+  paddingBottom: sidebarOnBottom ? `${drawerWidth}px` : theme.spacing(2),
+  minHeight: "100vh",
+  position: "relative",
+  display: "flex",
+  justifyContent: "center",
+}));
 
 const darkTheme = createTheme({
   palette: {
@@ -64,8 +44,7 @@ const darkTheme = createTheme({
 function AppContent() {
   const theme = useTheme();
   const isLargeScreen = useMediaQuery(theme.breakpoints.up("lg"));
-  // Initialize sidebarOpen based on screen size
-  const [sidebarOpen, setSidebarOpen] = useState(() => isLargeScreen);
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const [videoPairs, setVideoPairs] = useState([]);
   const [currentPairIndex, setCurrentPairIndex] = useState(0);
   const [feedback, setFeedback] = useState([]);
@@ -75,10 +54,6 @@ function AppContent() {
   const location = useLocation();
   const navigate = useNavigate();
   const [sortBy, setSortBy] = useState("date");
-
-  useEffect(() => {
-    setSidebarOpen(isLargeScreen);
-  }, [isLargeScreen]);
 
   const getSortedVideoPairs = (pairs) => {
     return [...pairs].sort((a, b) => {
@@ -162,11 +137,8 @@ function AppContent() {
     };
 
     fetchData();
-    const interval = setInterval(fetchData, 30000);
-    return () => clearInterval(interval);
-  }, [sortBy]); // Add sortBy as dependency
+  }, [sortBy]);
 
-  // Modify the navigation handlers
   const handleNext = () => {
     const sortedPairs = getSortedVideoPairs(videoPairs);
     const currentId = videoPairs[currentPairIndex].id;
@@ -269,33 +241,28 @@ function AppContent() {
         flexDirection: "column",
         minHeight: "100vh",
         bgcolor: "var(--md-sys-color-background)",
+        overflow: "auto", // Changed from 'hidden' to 'auto'
       }}
     >
       <Navbar />
-      <Box sx={{ display: "flex", flex: 1, position: "relative" }}>
-        <IconButton
-          onClick={() => setSidebarOpen(!sidebarOpen)}
-          sx={{
-            position: "fixed",
-            right: sidebarOpen ? drawerWidth + 16 : 16,
-            top: 80,
-            color: "var(--md-sys-color-on-surface)",
-            backgroundColor: "var(--md-sys-color-surface-container)",
-            "&:hover": {
-              backgroundColor: "var(--md-sys-color-surface-container-high)",
-            },
-            zIndex: theme.zIndex.drawer + 1,
-          }}
-        >
-          <Menu />
-        </IconButton>
-        <Main open={sidebarOpen}>
+      <Box
+        sx={{
+          display: "flex",
+          flex: 1,
+          position: "relative",
+          flexDirection: isMobile ? "column" : "row",
+          width: "100%",
+        }}
+      >
+        <Main sidebarOnBottom={isMobile}>
           <Box
             sx={{
               width: "100%",
+              maxWidth: isMobile ? "100%" : "calc(100vw - 340px)", // Adjust max width based on screen size
               display: "flex",
               justifyContent: "center",
               position: "relative",
+              margin: "0 auto",
             }}
           >
             <Routes>
@@ -345,7 +312,16 @@ function AppContent() {
                 path="/"
                 element={
                   currentPair && currentPair.video1 && currentPair.video2 ? (
-                    <Box>
+                    <Box
+                      sx={{
+                        width: "100%",
+                        maxWidth: "1200px", // Add a maxWidth to contain the content
+                        margin: "0 auto", // Center the content
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                      }}
+                    >
                       <VideoGrid
                         video1={currentPair.video1}
                         video2={currentPair.video2}
@@ -373,12 +349,11 @@ function AppContent() {
           </Box>
         </Main>
         <Sidebar
-          open={sidebarOpen}
-          onClose={() => setSidebarOpen(false)}
           submissions={videoPairs}
           sortBy={sortBy}
           onSortChange={(newSortBy) => setSortBy(newSortBy)}
           currentPairId={currentPair?.id}
+          isMobile={isMobile}
         />
       </Box>
     </Box>

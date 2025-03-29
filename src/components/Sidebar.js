@@ -87,12 +87,11 @@ const getScoreColor = (score) => {
 };
 
 const Sidebar = ({
-  open,
-  onClose,
   submissions,
   sortBy,
   onSortChange,
   currentPairId,
+  isMobile,
 }) => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
@@ -124,27 +123,24 @@ const Sidebar = ({
 
   const handleCardClick = (submission) => {
     navigate(`/?id=${submission.id}`);
-    onClose();
   };
 
   const processedSubmissions = sortSubmissions(filterSubmissions(submissions));
 
   return (
-    <Drawer
+    <Box
       sx={{
-        width: drawerWidth,
-        flexShrink: 0,
-        "& .MuiDrawer-paper": {
-          width: drawerWidth,
-          backgroundColor: "var(--md-sys-color-secondary-container)",
-          top: "64px", // Navbar height
-          height: "calc(100% - 64px)",
-          boxSizing: "border-box",
-        },
+        position: isMobile ? "relative" : "fixed",
+        right: isMobile ? "auto" : 0,
+        top: isMobile ? "auto" : "64px",
+        width: isMobile ? "100%" : drawerWidth,
+        height: isMobile ? "auto" : "calc(100vh - 64px)",
+        backgroundColor: "var(--md-sys-color-secondary-container)",
+        borderLeft: isMobile ? "none" : "1px solid rgba(255, 255, 255, 0.12)",
+        borderTop: isMobile ? "1px solid rgba(255, 255, 255, 0.12)" : "none",
+        zIndex: 1,
+        overflow: "auto",
       }}
-      variant="persistent"
-      anchor="right"
-      open={open}
     >
       <DrawerHeader>
         <Typography
@@ -153,9 +149,6 @@ const Sidebar = ({
         >
           Submissions
         </Typography>
-        <IconButton onClick={onClose}>
-          <ChevronRight />
-        </IconButton>
       </DrawerHeader>
 
       <Box sx={{ p: 2 }}>
@@ -182,104 +175,104 @@ const Sidebar = ({
             ),
           }}
         />
+      </Box>
 
-        <Box sx={{ overflowY: "auto", height: "calc(100vh - 200px)" }}>
-          {processedSubmissions.map((submission) => {
-            const score =
-              submission.similarVotes + submission.notSimilarVotes > 0
-                ? (submission.similarVotes /
-                    (submission.similarVotes + submission.notSimilarVotes)) *
-                  100
-                : 0;
+      <Box sx={{ overflowY: "auto", height: "calc(100vh - 200px)" }}>
+        {processedSubmissions.map((submission) => {
+          const score =
+            submission.similarVotes + submission.notSimilarVotes > 0
+              ? (submission.similarVotes /
+                  (submission.similarVotes + submission.notSimilarVotes)) *
+                100
+              : 0;
 
-            const formatDate = (dateString) => {
-              const date = new Date(dateString);
-              return date.toLocaleDateString("en-US", {
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-              });
-            };
+          const formatDate = (dateString) => {
+            const date = new Date(dateString);
+            return date.toLocaleDateString("en-US", {
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+            });
+          };
 
-            return (
-              <StyledCard
-                key={submission.id}
-                onClick={() => handleCardClick(submission)}
-                isSelected={submission.id === currentPairId}
-              >
-                <CardContentStyled>
-                  <Box sx={{ textAlign: "center", mb: 2 }}>
-                    <SongTitle>{submission.video1.songName}</SongTitle>
-                    <VsDivider>VS.</VsDivider>
-                    <SongTitle>{submission.video2.songName}</SongTitle>
-                  </Box>
+          return (
+            <StyledCard
+              key={submission.id}
+              onClick={() => handleCardClick(submission)}
+              isSelected={submission.id === currentPairId}
+            >
+              <CardContentStyled>
+                <Box sx={{ textAlign: "center", mb: 2 }}>
+                  <SongTitle>{submission.video1.songName}</SongTitle>
+                  <VsDivider>VS.</VsDivider>
+                  <SongTitle>{submission.video2.songName}</SongTitle>
+                </Box>
 
-                  <Typography
-                    sx={{
-                      fontSize: "0.8rem",
-                      color: "var(--md-sys-color-on-surface-variant)",
-                      fontFamily: "Roboto, sans-serif",
-                      mt: "auto",
-                      textAlign: "center",
-                    }}
-                  >
-                    by {submission.username}
-                    <br />
-                    {formatDate(submission.date_added)}
-                  </Typography>
+                <Typography
+                  sx={{
+                    fontSize: "0.8rem",
+                    color: "var(--md-sys-color-on-surface-variant)",
+                    fontFamily: "Roboto, sans-serif",
+                    mt: "auto",
+                    textAlign: "center",
+                  }}
+                >
+                  by {submission.username}
+                  <br />
+                  {formatDate(submission.date_added)}
+                </Typography>
 
-                  <ScoreContainer>
-                    <ScoreCircle>
-                      <CircularProgress
-                        variant="determinate"
-                        value={score}
-                        size={40}
-                        thickness={4}
+                <ScoreContainer>
+                  <ScoreCircle>
+                    <CircularProgress
+                      variant="determinate"
+                      value={score}
+                      size={40}
+                      thickness={4}
+                      sx={{
+                        color: getScoreColor(score),
+                        position: "absolute",
+                      }}
+                    />
+                    <CircularProgress
+                      variant="determinate"
+                      value={100}
+                      size={40}
+                      thickness={4}
+                      sx={{
+                        color: "var(--md-sys-color-surface-variant)",
+                        opacity: 0.2,
+                      }}
+                    />
+                    <Box
+                      sx={{
+                        top: 0,
+                        left: 0,
+                        bottom: 0,
+                        right: 0,
+                        position: "absolute",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <Typography
                         sx={{
-                          color: getScoreColor(score),
-                          position: "absolute",
-                        }}
-                      />
-                      <CircularProgress
-                        variant="determinate"
-                        value={100}
-                        size={40}
-                        thickness={4}
-                        sx={{
-                          color: "var(--md-sys-color-surface-variant)",
-                          opacity: 0.2,
-                        }}
-                      />
-                      <Box
-                        sx={{
-                          top: 0,
-                          left: 0,
-                          bottom: 0,
-                          right: 0,
-                          position: "absolute",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
+                          fontSize: "0.6rem",
+                          fontFamily: '"Press Start 2P"',
                         }}
                       >
-                        <Typography
-                          sx={{
-                            fontSize: "0.6rem",
-                            fontFamily: '"Press Start 2P"',
-                          }}
-                        >
-                          {Math.round(score)}%
-                        </Typography>
-                      </Box>
-                    </ScoreCircle>
-                  </ScoreContainer>
-                </CardContentStyled>
-              </StyledCard>
-            );
-          })}
-        </Box>
+                        {Math.round(score)}%
+                      </Typography>
+                    </Box>
+                  </ScoreCircle>
+                </ScoreContainer>
+              </CardContentStyled>
+            </StyledCard>
+          );
+        })}
       </Box>
-    </Drawer>
+    </Box>
   );
 };
 
